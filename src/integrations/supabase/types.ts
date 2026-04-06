@@ -14,7 +14,163 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      atendimentos: {
+        Row: {
+          boleto_pago: boolean | null
+          certificado_id: string | null
+          cliente_id: string | null
+          created_at: string | null
+          data_fim_certificado: string | null
+          data_hora: string
+          data_inicio_certificado: string | null
+          etiqueta_id: string | null
+          id: string
+          observacoes: string | null
+          percentual_comissao: number | null
+          protocolo: string | null
+          status: string | null
+          tem_comissao: boolean | null
+          valor_comissao: number | null
+          valor_repasse: number | null
+        }
+        Insert: {
+          boleto_pago?: boolean | null
+          certificado_id?: string | null
+          cliente_id?: string | null
+          created_at?: string | null
+          data_fim_certificado?: string | null
+          data_hora: string
+          data_inicio_certificado?: string | null
+          etiqueta_id?: string | null
+          id?: string
+          observacoes?: string | null
+          percentual_comissao?: number | null
+          protocolo?: string | null
+          status?: string | null
+          tem_comissao?: boolean | null
+          valor_comissao?: number | null
+          valor_repasse?: number | null
+        }
+        Update: {
+          boleto_pago?: boolean | null
+          certificado_id?: string | null
+          cliente_id?: string | null
+          created_at?: string | null
+          data_fim_certificado?: string | null
+          data_hora?: string
+          data_inicio_certificado?: string | null
+          etiqueta_id?: string | null
+          id?: string
+          observacoes?: string | null
+          percentual_comissao?: number | null
+          protocolo?: string | null
+          status?: string | null
+          tem_comissao?: boolean | null
+          valor_comissao?: number | null
+          valor_repasse?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_certificado_id_fkey"
+            columns: ["certificado_id"]
+            isOneToOne: false
+            referencedRelation: "certificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificados: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          cpf_cnpj: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      etiquetas: {
+        Row: {
+          ativo: boolean | null
+          cor: string | null
+          created_at: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
