@@ -33,12 +33,8 @@ export default function Clientes() {
   const [selected, setSelected] = useState<Cliente | null>(null);
   const [historico, setHistorico] = useState<Atendimento[]>([]);
   const [metrics, setMetrics] = useState({ total: 0, pendentes: 0, ativos: 0 });
-
-  // Date filters
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-
-  // New client modal
   const [newOpen, setNewOpen] = useState(false);
   const [formNome, setFormNome] = useState("");
   const [formTelefone, setFormTelefone] = useState("");
@@ -52,10 +48,8 @@ export default function Clientes() {
     const { data } = await supabase.from("clientes").select("*").order("nome");
     const clienteList = (data || []) as Cliente[];
     setClientes(clienteList);
-
     const { count: pendentes } = await supabase.from("atendimentos").select("id", { count: "exact", head: true }).eq("boleto_pago", false).eq("status", "concluido");
     const { count: ativos } = await supabase.from("atendimentos").select("id", { count: "exact", head: true }).gte("data_fim_certificado", new Date().toISOString().split("T")[0]);
-
     setMetrics({ total: clienteList.length, pendentes: pendentes || 0, ativos: ativos || 0 });
     setLoading(false);
   };
@@ -90,9 +84,7 @@ export default function Clientes() {
     if (!formNome) { toast.error("Nome é obrigatório"); return; }
     setSavingClient(true);
     try {
-      const { error } = await supabase.from("clientes").insert({
-        nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf,
-      });
+      const { error } = await supabase.from("clientes").insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf });
       if (error) throw error;
       toast.success("Cliente adicionado!");
       setNewOpen(false);
@@ -103,27 +95,28 @@ export default function Clientes() {
     } finally { setSavingClient(false); }
   };
 
-  if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}</div>;
+  if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-        <Button onClick={() => setNewOpen(true)} className="bg-secondary hover:bg-secondary/90">
+        <Button onClick={() => setNewOpen(true)} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
           <Plus className="h-4 w-4 mr-2" /> Novo Cliente
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { icon: Users, label: "Total de clientes", value: metrics.total },
-          { icon: AlertCircle, label: "Boletos pendentes", value: metrics.pendentes },
-          { icon: Award, label: "Certificados ativos", value: metrics.ativos },
+          { icon: Users, label: "Total de clientes", value: metrics.total, color: "text-secondary", gradient: "from-secondary/15 to-secondary/5" },
+          { icon: AlertCircle, label: "Boletos pendentes", value: metrics.pendentes, color: "text-destructive", gradient: "from-destructive/15 to-destructive/5" },
+          { icon: Award, label: "Certificados ativos", value: metrics.ativos, color: "text-accent", gradient: "from-accent/15 to-accent/5" },
         ].map((m) => (
-          <Card key={m.label} className="shadow-card rounded-xl">
-            <CardContent className="p-4 flex items-center gap-3">
-              <m.icon className="h-5 w-5 text-secondary" />
-              <div>
+          <Card key={m.label} className="shadow-card rounded-2xl border-border/50 hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group">
+            <CardContent className="p-4 flex items-center gap-3 relative">
+              <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} opacity-50 group-hover:opacity-80 transition-opacity duration-300`} />
+              <m.icon className={`h-5 w-5 ${m.color} relative z-10`} />
+              <div className="relative z-10">
                 <p className="text-xs text-muted-foreground">{m.label}</p>
                 <p className="text-xl font-bold text-foreground">{m.value}</p>
               </div>
@@ -132,22 +125,26 @@ export default function Clientes() {
         ))}
       </div>
 
-      {/* Search + date filters */}
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-10" placeholder="Buscar por nome, email ou CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-10 rounded-xl" placeholder="Buscar por nome, email ou CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Input type="date" className="w-auto" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Data início" />
-        <Input type="date" className="w-auto" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Data fim" />
+        <Input type="date" className="w-auto rounded-xl" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Data início" />
+        <Input type="date" className="w-auto rounded-xl" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Data fim" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {filtered.map((c) => (
-          <Card key={c.id} className="shadow-card rounded-xl hover:shadow-card-hover transition-shadow cursor-pointer" onClick={() => openDetails(c)}>
+        {filtered.map((c, i) => (
+          <Card
+            key={c.id}
+            className="shadow-card rounded-2xl border-border/50 hover:shadow-card-hover transition-all duration-300 cursor-pointer hover:-translate-y-0.5 animate-fade-in"
+            style={{ animationDelay: `${i * 40}ms` }}
+            onClick={() => openDetails(c)}
+          >
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full ${getColor(c.nome)} flex items-center justify-center text-primary-foreground font-bold text-sm`}>
+                <div className={`w-10 h-10 rounded-xl ${getColor(c.nome)} flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm`}>
                   {getInitials(c.nome)}
                 </div>
                 <div>
@@ -163,7 +160,7 @@ export default function Clientes() {
 
       {/* Client detail */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl">
           <DialogHeader><DialogTitle>{selected?.nome}</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-4">
@@ -179,7 +176,7 @@ export default function Clientes() {
               ) : (
                 <div className="space-y-2">
                   {historico.map((a) => (
-                    <div key={a.id} className="p-3 rounded-lg bg-muted/50 flex items-center justify-between gap-2 text-sm">
+                    <div key={a.id} className="p-3 rounded-xl bg-muted/40 flex items-center justify-between gap-2 text-sm hover:bg-muted/60 transition-colors duration-200">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs text-muted-foreground">{a.protocolo}</span>
@@ -192,7 +189,7 @@ export default function Clientes() {
                         {a.etiquetas && <Badge style={{ backgroundColor: a.etiquetas.cor }} className="text-[10px] border-0 text-primary-foreground">{a.etiquetas.nome}</Badge>}
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleBoleto(a.id, !a.boleto_pago); }}
-                          className={`text-xs px-2 py-1 rounded ${a.boleto_pago ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}
+                          className={`text-xs px-2 py-1 rounded-lg transition-colors duration-200 ${a.boleto_pago ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}
                         >
                           {a.boleto_pago ? "Pago" : "Pendente"}
                         </button>
@@ -208,28 +205,28 @@ export default function Clientes() {
 
       {/* New client modal */}
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome *</Label>
-              <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" />
+              <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" className="rounded-xl" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input value={formTelefone} onChange={(e) => setFormTelefone(phoneMask(e.target.value))} placeholder="(99) 99999-9999" />
+                <Input value={formTelefone} onChange={(e) => setFormTelefone(phoneMask(e.target.value))} placeholder="(99) 99999-9999" className="rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemplo.com" />
+                <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemplo.com" className="rounded-xl" />
               </div>
             </div>
             <div className="space-y-2">
               <Label>CPF/CNPJ</Label>
-              <Input value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="000.000.000-00" />
+              <Input value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="000.000.000-00" className="rounded-xl" />
             </div>
-            <Button onClick={handleNewClient} disabled={savingClient} className="w-full bg-secondary hover:bg-secondary/90">
+            <Button onClick={handleNewClient} disabled={savingClient} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
               {savingClient ? "Salvando..." : "Adicionar Cliente"}
             </Button>
           </div>

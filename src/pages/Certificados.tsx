@@ -64,48 +64,53 @@ export default function Certificados() {
     load();
   };
 
-  if (loading) return <div className="grid grid-cols-2 gap-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}</div>;
+  if (loading) return <div className="grid grid-cols-2 gap-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Tipos de Certificado</h1>
-        <Button onClick={() => openModal()} className="bg-secondary hover:bg-secondary/90">
+        <Button onClick={() => openModal()} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
           <Plus className="h-4 w-4 mr-2" /> Novo Certificado
         </Button>
       </div>
 
       {certificados.length === 0 ? (
-        <div className="text-center py-16">
-          <Award className="h-16 w-16 mx-auto text-muted-foreground/40 mb-4" />
+        <div className="text-center py-16 animate-fade-in">
+          <Award className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
           <p className="text-muted-foreground">Nenhum certificado cadastrado</p>
-          <Button className="mt-4 bg-secondary hover:bg-secondary/90" onClick={() => openModal()}>Criar primeiro certificado</Button>
+          <Button className="mt-4 rounded-xl bg-gradient-to-r from-secondary to-secondary/80" onClick={() => openModal()}>Criar primeiro certificado</Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {certificados.map((c) => (
-            <Card key={c.id} className="shadow-card rounded-xl hover:shadow-card-hover transition-shadow">
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-start justify-between">
+          {certificados.map((c, i) => (
+            <Card
+              key={c.id}
+              className="shadow-card rounded-2xl border-border/50 hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden group animate-fade-in"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
+              <CardContent className="p-5 space-y-3 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="flex items-start justify-between relative z-10">
                   <h3 className="font-bold text-foreground text-lg">{c.nome}</h3>
                   <Badge variant={c.ativo ? "default" : "secondary"} className={c.ativo ? "bg-success text-success-foreground border-0" : ""}>{c.ativo ? "Ativo" : "Inativo"}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{c.descricao || "—"}</p>
-                <p className="text-2xl font-bold text-secondary">{formatCurrency(Number(c.valor))}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => openModal(c)}><Pencil className="h-3 w-3 mr-1" /> Editar</Button>
+                <p className="text-sm text-muted-foreground line-clamp-2 relative z-10">{c.descricao || "—"}</p>
+                <p className="text-2xl font-bold text-secondary relative z-10">{formatCurrency(Number(c.valor))}</p>
+                <div className="flex gap-2 relative z-10">
+                  <Button size="sm" variant="outline" className="rounded-lg" onClick={() => openModal(c)}><Pencil className="h-3 w-3 mr-1" /> Editar</Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="ghost">{c.ativo ? "Desativar" : "Ativar"}</Button>
+                      <Button size="sm" variant="ghost" className="rounded-lg">{c.ativo ? "Desativar" : "Ativar"}</Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="rounded-2xl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>{c.ativo ? "Desativar" : "Ativar"} certificado?</AlertDialogTitle>
                         <AlertDialogDescription>{c.ativo ? "O certificado não aparecerá mais para novos agendamentos." : "O certificado voltará a ficar disponível."}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => toggleAtivo(c.id, !c.ativo)}>Confirmar</AlertDialogAction>
+                        <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction className="rounded-xl" onClick={() => toggleAtivo(c.id, !c.ativo)}>Confirmar</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -117,16 +122,16 @@ export default function Certificados() {
       )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Certificado" : "Novo Certificado"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="e-CPF A1" /></div>
-            <div className="space-y-2"><Label>Descrição</Label><Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição do certificado" /></div>
-            <div className="space-y-2"><Label>Valor (R$)</Label><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" /></div>
+            <div className="space-y-2"><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="e-CPF A1" className="rounded-xl" /></div>
+            <div className="space-y-2"><Label>Descrição</Label><Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descrição do certificado" className="rounded-xl" /></div>
+            <div className="space-y-2"><Label>Valor (R$)</Label><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" className="rounded-xl" /></div>
             <div className="flex items-center gap-3"><Switch checked={ativo} onCheckedChange={setAtivo} /><Label>Ativo</Label></div>
-            <Button onClick={save} className="w-full bg-secondary hover:bg-secondary/90">Salvar</Button>
+            <Button onClick={save} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
