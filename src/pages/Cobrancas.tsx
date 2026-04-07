@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Receipt, Copy, CheckCircle, Plus, Pencil } from "lucide-react";
+import { Receipt, Copy, CheckCircle, Pencil } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -24,8 +24,6 @@ export default function Cobrancas() {
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-
-  // Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Cobranca | null>(null);
   const [editValor, setEditValor] = useState("");
@@ -40,10 +38,8 @@ export default function Cobrancas() {
       .select("id, data_hora, valor_repasse, protocolo, boleto_pago, status, clientes(nome, telefone, email), certificados(nome)")
       .eq("boleto_pago", false).eq("status", "concluido")
       .order("data_hora", { ascending: true });
-
     if (dateFrom) query = query.gte("data_hora", dateFrom);
     if (dateTo) query = query.lte("data_hora", dateTo + "T23:59:59");
-
     const { data } = await query;
     setCobrancas((data as any) || []);
     setLoading(false);
@@ -94,26 +90,28 @@ export default function Cobrancas() {
 
   const totalPendente = cobrancas.reduce((s, c) => s + (Number(c.valor_repasse) || 0), 0);
 
-  if (loading) return <Skeleton className="h-96 rounded-xl" />;
+  if (loading) return <Skeleton className="h-96 rounded-2xl" />;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Cobranças Pendentes</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="shadow-card rounded-xl">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Receipt className="h-5 w-5 text-destructive" />
-            <div>
+        <Card className="shadow-card rounded-2xl border-border/50 hover:shadow-card-hover transition-all duration-300 overflow-hidden group">
+          <CardContent className="p-4 flex items-center gap-3 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-destructive/5 opacity-50 group-hover:opacity-80 transition-opacity duration-300" />
+            <Receipt className="h-5 w-5 text-destructive relative z-10" />
+            <div className="relative z-10">
               <p className="text-xs text-muted-foreground">Boletos pendentes</p>
               <p className="text-xl font-bold text-foreground">{cobrancas.length}</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-card rounded-xl">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Receipt className="h-5 w-5 text-warning" />
-            <div>
+        <Card className="shadow-card rounded-2xl border-border/50 hover:shadow-card-hover transition-all duration-300 overflow-hidden group">
+          <CardContent className="p-4 flex items-center gap-3 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-warning/10 to-warning/5 opacity-50 group-hover:opacity-80 transition-opacity duration-300" />
+            <Receipt className="h-5 w-5 text-warning relative z-10" />
+            <div className="relative z-10">
               <p className="text-xs text-muted-foreground">Valor total em aberto</p>
               <p className="text-xl font-bold text-foreground">{formatCurrency(totalPendente)}</p>
             </div>
@@ -121,26 +119,25 @@ export default function Cobrancas() {
         </Card>
       </div>
 
-      {/* Date filters */}
       <div className="flex flex-col md:flex-row gap-3">
-        <Input type="date" className="w-auto" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Data início" />
-        <Input type="date" className="w-auto" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Data fim" />
+        <Input type="date" className="w-auto rounded-xl" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Data início" />
+        <Input type="date" className="w-auto rounded-xl" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Data fim" />
         {(dateFrom || dateTo) && (
-          <Button variant="outline" size="sm" onClick={() => { setDateFrom(""); setDateTo(""); }}>Limpar filtro</Button>
+          <Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setDateFrom(""); setDateTo(""); }}>Limpar filtro</Button>
         )}
       </div>
 
       {cobrancas.length === 0 ? (
-        <div className="text-center py-16">
-          <CheckCircle className="h-16 w-16 mx-auto text-success/40 mb-4" />
+        <div className="text-center py-16 animate-fade-in">
+          <CheckCircle className="h-16 w-16 mx-auto text-success/30 mb-4" />
           <p className="text-muted-foreground text-lg">Nenhuma cobrança pendente!</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-card overflow-hidden">
+        <Card className="shadow-card rounded-2xl border-border/50 overflow-hidden animate-slide-up">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
+                <tr className="border-b bg-muted/30">
                   <th className="text-left p-3 font-medium text-muted-foreground">Cliente</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Telefone</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Protocolo</th>
@@ -155,7 +152,7 @@ export default function Cobrancas() {
                 {cobrancas.map((c) => {
                   const dias = diasAtraso(c.data_hora);
                   return (
-                    <tr key={c.id} className={`border-b hover:bg-muted/30 ${dias > 30 ? "bg-destructive/5" : ""}`}>
+                    <tr key={c.id} className={`border-b hover:bg-muted/20 transition-colors duration-200 ${dias > 30 ? "bg-destructive/5" : ""}`}>
                       <td className="p-3 font-medium text-foreground">{c.clientes?.nome || "—"}</td>
                       <td className="p-3 text-muted-foreground">{c.clientes?.telefone || "—"}</td>
                       <td className="p-3 font-mono text-xs text-muted-foreground">{c.protocolo}</td>
@@ -167,25 +164,25 @@ export default function Cobrancas() {
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex gap-1 justify-end">
-                          <Button size="sm" variant="ghost" className="h-7" onClick={() => openEdit(c)}>
+                          <Button size="sm" variant="ghost" className="h-7 rounded-lg" onClick={() => openEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="text-xs h-7">Pago</Button>
+                              <Button size="sm" variant="outline" className="text-xs h-7 rounded-lg">Pago</Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="rounded-2xl">
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
                                 <AlertDialogDescription>Marcar o boleto de {c.clientes?.nome} como pago?</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => marcarPago(c.id)}>Confirmar</AlertDialogAction>
+                                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                                <AlertDialogAction className="rounded-xl" onClick={() => marcarPago(c.id)}>Confirmar</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                          <Button size="sm" variant="ghost" className="h-7" onClick={() => copyContato(c)}><Copy className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" className="h-7 rounded-lg" onClick={() => copyContato(c)}><Copy className="h-3 w-3" /></Button>
                         </div>
                       </td>
                     </tr>
@@ -194,24 +191,23 @@ export default function Cobrancas() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Edit modal */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader><DialogTitle>Editar Cobrança</DialogTitle></DialogHeader>
           {editItem && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Cliente: <span className="text-foreground font-medium">{editItem.clientes?.nome}</span> • {editItem.protocolo}</p>
               <div className="space-y-2">
                 <Label>Valor de repasse (R$)</Label>
-                <Input type="number" step="0.01" value={editValor} onChange={(e) => setEditValor(e.target.value)} />
+                <Input type="number" step="0.01" value={editValor} onChange={(e) => setEditValor(e.target.value)} className="rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="agendado">Agendado</SelectItem>
                     <SelectItem value="concluido">Concluído</SelectItem>
@@ -223,7 +219,7 @@ export default function Cobrancas() {
                 <input type="checkbox" checked={editBoleto} onChange={(e) => setEditBoleto(e.target.checked)} className="rounded" />
                 <Label>Boleto pago</Label>
               </div>
-              <Button onClick={handleEditSave} disabled={saving} className="w-full bg-secondary hover:bg-secondary/90">
+              <Button onClick={handleEditSave} disabled={saving} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
                 {saving ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </div>

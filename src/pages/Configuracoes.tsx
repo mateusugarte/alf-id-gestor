@@ -58,48 +58,52 @@ export default function Configuracoes() {
     load();
   };
 
-  if (loading) return <Skeleton className="h-64 rounded-xl" />;
+  if (loading) return <Skeleton className="h-64 rounded-2xl" />;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
 
-      <Card className="shadow-card rounded-xl">
+      <Card className="shadow-card rounded-2xl border-border/50 animate-slide-up">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Etiquetas / Responsáveis</h2>
-            <Button onClick={() => openModal()} className="bg-secondary hover:bg-secondary/90">
+            <Button onClick={() => openModal()} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
               <Plus className="h-4 w-4 mr-2" /> Nova Etiqueta
             </Button>
           </div>
 
           {etiquetas.length === 0 ? (
-            <div className="text-center py-12">
-              <Tag className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+            <div className="text-center py-12 animate-fade-in">
+              <Tag className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
               <p className="text-muted-foreground">Nenhuma etiqueta cadastrada</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {etiquetas.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+              {etiquetas.map((e, i) => (
+                <div
+                  key={e.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all duration-200 animate-fade-in"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
                   <div className="flex items-center gap-3">
                     <Badge style={{ backgroundColor: e.cor }} className="text-primary-foreground border-0 px-3">{e.nome}</Badge>
-                    <span className="text-xs text-muted-foreground">{e.cor}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{e.cor}</span>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => openModal(e)}><Pencil className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="ghost" className="rounded-lg" onClick={() => openModal(e)}><Pencil className="h-3 w-3" /></Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="ghost" className="text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                        <Button size="sm" variant="ghost" className="text-destructive rounded-lg"><Trash2 className="h-3 w-3" /></Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="rounded-2xl">
                         <AlertDialogHeader>
                           <AlertDialogTitle>Excluir etiqueta?</AlertDialogTitle>
-                          <AlertDialogDescription>Esta ação não pode ser desfeita. Atendimentos vinculados perderão a referência.</AlertDialogDescription>
+                          <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => remove(e.id)}>Excluir</AlertDialogAction>
+                          <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                          <AlertDialogAction className="rounded-xl" onClick={() => remove(e.id)}>Excluir</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -112,12 +116,12 @@ export default function Configuracoes() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Etiqueta" : "Nova Etiqueta"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Nome do responsável</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" /></div>
+            <div className="space-y-2"><Label>Nome do responsável</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" className="rounded-xl" /></div>
             <div className="space-y-2">
               <Label>Cor</Label>
               <div className="flex gap-2 flex-wrap">
@@ -125,7 +129,7 @@ export default function Configuracoes() {
                   <button
                     key={c}
                     onClick={() => setCor(c)}
-                    className={`w-8 h-8 rounded-full transition-all ${cor === c ? "ring-2 ring-offset-2 ring-foreground scale-110" : "hover:scale-105"}`}
+                    className={`w-8 h-8 rounded-full transition-all duration-200 ${cor === c ? "ring-2 ring-offset-2 ring-foreground scale-110" : "hover:scale-105"}`}
                     style={{ backgroundColor: c }}
                   />
                 ))}
@@ -135,7 +139,7 @@ export default function Configuracoes() {
               <div className="w-6 h-6 rounded-full" style={{ backgroundColor: cor }} />
               <Badge style={{ backgroundColor: cor }} className="text-primary-foreground border-0">{nome || "Preview"}</Badge>
             </div>
-            <Button onClick={save} className="w-full bg-secondary hover:bg-secondary/90">Salvar</Button>
+            <Button onClick={save} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
