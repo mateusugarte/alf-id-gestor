@@ -8,76 +8,78 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { formatTime, generateProtocolo, phoneMask, formatCurrency } from "@/lib/format";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronLeft, ChevronRight, Plus, Clock, User, FileText } from "lucide-react";
+import { formatTime, generateProtocolo, phoneMask, formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 
 interface Certificado { id: string; nome: string; valor: number; }
 interface Etiqueta { id: string; nome: string; cor: string; }
 interface Atendimento {
   id: string; data_hora: string; status: string; protocolo: string; valor_repasse: number;
-  clientes: { nome: string } | null; certificados: { nome: string } | null; etiquetas: { nome: string; cor: string } | null;
+  boleto_pago: boolean; observacoes: string | null; tem_comissao: boolean; percentual_comissao: number; valor_comissao: number;
+  data_inicio_certificado: string | null; data_fim_certificado: string | null;
+  clientes: { nome: string; telefone: string; email: string } | null;
+  certificados: { nome: string } | null;
+  etiquetas: { nome: string; cor: string } | null;
 }
 
-function getWeekDays(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  return Array.from({ length: 6 }, (_, i) => {
-    const dd = new Date(monday);
-    dd.setDate(monday.getDate() + i);
-    return dd;
-  });
+function getDaysInMonth(year: number, month: number) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const days: (Date | null)[] = [];
+  // pad start with nulls (week starts Monday)
+  let startDow = firstDay.getDay();
+  if (startDow === 0) startDow = 7;
+  for (let i = 1; i < startDow; i++) days.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) days.push(new Date(year, month, d));
+  // pad end
+  while (days.length % 7 !== 0) days.push(null);
+  return days;
 }
-
-const hours = Array.from({ length: 27 }, (_, i) => {
-  const h = 7 + Math.floor(i / 2);
-  const m = i % 2 === 0 ? "00" : "30";
-  return `${String(h).padStart(2, "0")}:${m}`;
-});
-
-const timeSlots = Array.from({ length: 53 }, (_, i) => {
-  const h = 7 + Math.floor(i / 4);
-  const m = (i % 4) * 15;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-});
 
 export default function Agenda() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [certificados, setCertificados] = useState<Certificado[]>([]);
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // New appointment modal
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-
   const [formNome, setFormNome] = useState("");
   const [formTelefone, setFormTelefone] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formCpfCnpj, setFormCpfCnpj] = useState("");
   const [formCertificado, setFormCertificado] = useState("");
   const [formValor, setFormValor] = useState("");
   const [formTemComissao, setFormTemComissao] = useState(false);
   const [formPercentual, setFormPercentual] = useState("");
   const [formEtiqueta, setFormEtiqueta] = useState("");
+  const [formObs, setFormObs] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const weekDays = useMemo(() => getWeekDays(currentDate), [currentDate]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Detail modal
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailAtendimento, setDetailAtendimento] = useState<Atendimento | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [currentDate]);
+  const days = useMemo(() => getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  useEffect(() => { loadData(); }, [currentMonth]);
 
   const loadData = async () => {
-    const start = weekDays[0].toISOString();
-    const end = new Date(weekDays[5]);
-    end.setDate(end.getDate() + 1);
+    const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString();
+    const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1).toISOString();
 
     const [atRes, certRes, etiRes] = await Promise.all([
-      supabase.from("atendimentos").select("*, clientes(nome), certificados(nome), etiquetas(nome, cor)").gte("data_hora", start).lt("data_hora", end.toISOString()).order("data_hora"),
+      supabase.from("atendimentos")
+        .select("*, clientes(nome, telefone, email), certificados(nome), etiquetas(nome, cor)")
+        .gte("data_hora", start).lt("data_hora", end).order("data_hora"),
       supabase.from("certificados").select("*").eq("ativo", true),
       supabase.from("etiquetas").select("*").eq("ativo", true),
     ]);
@@ -88,20 +90,38 @@ export default function Agenda() {
     setLoading(false);
   };
 
-  const navigateWeek = (dir: number) => {
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() + dir * 7);
-    setCurrentDate(d);
+  const navigateMonth = (dir: number) => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + dir, 1));
+    setSelectedDays([]);
   };
 
-  const goToday = () => setCurrentDate(new Date());
+  const goToday = () => {
+    setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    setSelectedDays([todayStr]);
+  };
 
-  const openModal = (date?: Date, time?: string) => {
-    if (date) setSelectedDate(date.toISOString().split("T")[0]);
-    if (time) setSelectedTime(time);
-    setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCertificado("");
-    setFormValor(""); setFormTemComissao(false); setFormPercentual(""); setFormEtiqueta("");
+  const toggleDay = (d: Date) => {
+    const key = d.toISOString().split("T")[0];
+    setSelectedDays(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+
+  const getAtendimentosForDay = (d: Date) => {
+    const key = d.toISOString().split("T")[0];
+    return atendimentos.filter(a => a.data_hora.startsWith(key));
+  };
+
+  const openNewModal = (dateStr?: string) => {
+    setSelectedDate(dateStr || "");
+    setSelectedTime("");
+    setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
+    setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
+    setFormPercentual(""); setFormEtiqueta(""); setFormObs("");
     setModalOpen(true);
+  };
+
+  const openDetail = (a: Atendimento) => {
+    setDetailAtendimento(a);
+    setDetailOpen(true);
   };
 
   const comissaoValor = formTemComissao && formPercentual && formValor
@@ -109,20 +129,21 @@ export default function Agenda() {
 
   const handleSave = async () => {
     if (!formNome || !selectedDate || !selectedTime || !formCertificado) {
-      toast.error("Preencha os campos obrigatórios");
-      return;
+      toast.error("Preencha os campos obrigatórios"); return;
     }
     setSaving(true);
     try {
-      // Create or find client
       let clienteId: string;
-      const { data: existingClients } = await supabase.from("clientes").select("id").or(`email.eq.${formEmail},telefone.eq.${formTelefone}`).limit(1);
-      if (existingClients && existingClients.length > 0) {
-        clienteId = existingClients[0].id;
+      const { data: existing } = await supabase.from("clientes").select("id")
+        .or(`email.eq.${formEmail},telefone.eq.${formTelefone}`).limit(1);
+      if (existing && existing.length > 0) {
+        clienteId = existing[0].id;
       } else {
-        const { data: newClient, error: cErr } = await supabase.from("clientes").insert({ nome: formNome, telefone: formTelefone, email: formEmail }).select("id").single();
+        const { data: newC, error: cErr } = await supabase.from("clientes")
+          .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj })
+          .select("id").single();
         if (cErr) throw cErr;
-        clienteId = newClient.id;
+        clienteId = newC.id;
       }
 
       const protocolo = generateProtocolo();
@@ -130,111 +151,193 @@ export default function Agenda() {
       const valorRepasse = parseFloat(formValor) || 0;
 
       const { error } = await supabase.from("atendimentos").insert({
-        cliente_id: clienteId,
-        certificado_id: formCertificado,
-        etiqueta_id: formEtiqueta || null,
-        data_hora: dataHora,
-        valor_repasse: valorRepasse,
-        tem_comissao: formTemComissao,
+        cliente_id: clienteId, certificado_id: formCertificado,
+        etiqueta_id: formEtiqueta || null, data_hora: dataHora,
+        valor_repasse: valorRepasse, tem_comissao: formTemComissao,
         percentual_comissao: parseFloat(formPercentual) || 0,
-        valor_comissao: comissaoValor,
-        protocolo,
+        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null,
       });
       if (error) throw error;
-      toast.success(`Atendimento agendado! Protocolo: ${protocolo}`);
+      toast.success(`Agendado! Protocolo: ${protocolo}`);
       setModalOpen(false);
       loadData();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  const isToday = (d: Date) => {
-    const t = new Date();
-    return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
-  };
+  const monthLabel = currentMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const dayNames = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
-  const getAtendimentosForSlot = (day: Date, hour: string) => {
-    return atendimentos.filter((a) => {
-      const d = new Date(a.data_hora);
-      return d.getDate() === day.getDate() && d.getMonth() === day.getMonth() &&
-        `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` === hour;
-    });
-  };
+  // Atendimentos for selected days
+  const selectedAtendimentos = atendimentos.filter(a => {
+    const key = a.data_hora.split("T")[0];
+    return selectedDays.includes(key);
+  }).sort((a, b) => a.data_hora.localeCompare(b.data_hora));
 
-  const dayNames = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-  if (loading) return <div className="space-y-4"><Skeleton className="h-12 rounded-xl" /><Skeleton className="h-[600px] rounded-xl" /></div>;
+  if (loading) return <div className="space-y-4"><Skeleton className="h-12 rounded-xl" /><Skeleton className="h-[500px] rounded-xl" /></div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
-        <Button onClick={() => openModal()} className="bg-secondary hover:bg-secondary/90">
-          <Plus className="h-4 w-4 mr-2" /> Agendar Atendimento
+        <Button onClick={() => openNewModal(selectedDays[0])} className="bg-secondary hover:bg-secondary/90">
+          <Plus className="h-4 w-4 mr-2" /> Agendar
         </Button>
       </div>
 
+      {/* Month nav */}
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={() => navigateWeek(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+        <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}><ChevronLeft className="h-4 w-4" /></Button>
         <Button variant="outline" onClick={goToday}>Hoje</Button>
-        <Button variant="outline" size="icon" onClick={() => navigateWeek(1)}><ChevronRight className="h-4 w-4" /></Button>
-        <span className="text-sm text-muted-foreground font-medium">
-          {weekDays[0].toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} — {weekDays[5].toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-        </span>
+        <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}><ChevronRight className="h-4 w-4" /></Button>
+        <span className="text-sm text-muted-foreground font-medium capitalize">{monthLabel}</span>
       </div>
 
+      {/* Calendar grid */}
       <div className="bg-card rounded-xl shadow-card overflow-hidden">
-        <div className="grid grid-cols-[60px_repeat(6,1fr)] border-b">
-          <div className="p-2" />
-          {weekDays.map((d, i) => (
-            <div key={i} className={`p-3 text-center border-l ${isToday(d) ? "bg-secondary/10" : ""}`}>
-              <p className="text-xs text-muted-foreground">{dayNames[i]}</p>
-              <p className={`text-lg font-bold ${isToday(d) ? "bg-secondary text-secondary-foreground rounded-full w-9 h-9 flex items-center justify-center mx-auto" : "text-foreground"}`}>
-                {d.getDate()}
-              </p>
-            </div>
+        <div className="grid grid-cols-7">
+          {dayNames.map(n => (
+            <div key={n} className="p-2 text-center text-xs font-medium text-muted-foreground border-b">{n}</div>
           ))}
         </div>
-
-        <div className="max-h-[600px] overflow-y-auto">
-          {hours.map((hour, hi) => (
-            <div key={hour} className={`grid grid-cols-[60px_repeat(6,1fr)] ${hi % 2 === 0 ? "border-t" : "border-t border-border/50"}`}>
-              <div className="p-1 text-xs text-muted-foreground text-right pr-2 pt-1">
-                {hi % 2 === 0 ? hour : ""}
+        <div className="grid grid-cols-7">
+          {days.map((d, i) => {
+            if (!d) return <div key={`e${i}`} className="p-2 min-h-[80px] border-b border-r bg-muted/20" />;
+            const key = d.toISOString().split("T")[0];
+            const isToday = key === todayStr;
+            const isSelected = selectedDays.includes(key);
+            const dayAtendimentos = getAtendimentosForDay(d);
+            return (
+              <div
+                key={key}
+                onClick={() => toggleDay(d)}
+                className={`p-1.5 min-h-[80px] border-b border-r cursor-pointer transition-colors
+                  ${isSelected ? "bg-secondary/10 ring-1 ring-inset ring-secondary" : "hover:bg-muted/50"}
+                  ${isToday ? "bg-accent/5" : ""}`}
+              >
+                <span className={`text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full
+                  ${isToday ? "bg-secondary text-secondary-foreground" : "text-foreground"}`}>
+                  {d.getDate()}
+                </span>
+                <div className="mt-0.5 space-y-0.5">
+                  {dayAtendimentos.slice(0, 3).map(a => (
+                    <div
+                      key={a.id}
+                      onClick={(e) => { e.stopPropagation(); openDetail(a); }}
+                      className="text-[10px] rounded px-1 py-0.5 truncate text-primary-foreground cursor-pointer hover:opacity-80"
+                      style={{ backgroundColor: a.etiquetas?.cor || "hsl(var(--secondary))" }}
+                    >
+                      {formatTime(a.data_hora)} {a.clientes?.nome || "—"}
+                    </div>
+                  ))}
+                  {dayAtendimentos.length > 3 && (
+                    <span className="text-[10px] text-muted-foreground">+{dayAtendimentos.length - 3} mais</span>
+                  )}
+                </div>
               </div>
-              {weekDays.map((day, di) => {
-                const slotAtendimentos = getAtendimentosForSlot(day, hour);
-                return (
-                  <div
-                    key={di}
-                    className={`border-l min-h-[32px] p-0.5 cursor-pointer hover:bg-muted/50 transition-colors ${isToday(day) ? "bg-secondary/5" : ""}`}
-                    onClick={() => openModal(day, hour)}
-                  >
-                    {slotAtendimentos.map((a) => (
-                      <div
-                        key={a.id}
-                        className="text-[10px] rounded p-1 mb-0.5 truncate text-primary-foreground"
-                        style={{ backgroundColor: a.etiquetas?.cor || "hsl(var(--secondary))" }}
-                      >
-                        {a.clientes?.nome || "—"}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
+      {/* Selected days detail list */}
+      {selectedDays.length > 0 && (
+        <div className="bg-card rounded-xl shadow-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-foreground">
+              Atendimentos — {selectedDays.length === 1 ? formatDate(selectedDays[0]) : `${selectedDays.length} dias selecionados`}
+            </h2>
+            <Button size="sm" onClick={() => openNewModal(selectedDays[0])} className="bg-secondary hover:bg-secondary/90">
+              <Plus className="h-3 w-3 mr-1" /> Novo
+            </Button>
+          </div>
+          {selectedAtendimentos.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum atendimento nos dias selecionados</p>
+          ) : (
+            <div className="space-y-2">
+              {selectedAtendimentos.map(a => (
+                <div
+                  key={a.id}
+                  onClick={() => openDetail(a)}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-10 rounded-full" style={{ backgroundColor: a.etiquetas?.cor || "hsl(var(--secondary))" }} />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{a.clientes?.nome || "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatTime(a.data_hora)} • {a.certificados?.nome || "—"} • {a.protocolo}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`text-[10px] border-0 ${a.status === "concluido" ? "bg-success text-success-foreground" : a.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                      {a.status}
+                    </Badge>
+                    <span className="text-sm font-medium text-foreground">{formatCurrency(Number(a.valor_repasse))}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Detail modal */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" /> Detalhes do Atendimento
+            </DialogTitle>
+          </DialogHeader>
+          {detailAtendimento && (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge className={`border-0 ${detailAtendimento.status === "concluido" ? "bg-success text-success-foreground" : detailAtendimento.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                  {detailAtendimento.status}
+                </Badge>
+                <span className="font-mono text-xs text-muted-foreground">{detailAtendimento.protocolo}</span>
+                {detailAtendimento.etiquetas && (
+                  <Badge style={{ backgroundColor: detailAtendimento.etiquetas.cor }} className="border-0 text-primary-foreground text-[10px]">
+                    {detailAtendimento.etiquetas.nome}
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-muted-foreground">Cliente</p><p className="font-medium text-foreground">{detailAtendimento.clientes?.nome || "—"}</p></div>
+                <div><p className="text-muted-foreground">Telefone</p><p className="font-medium text-foreground">{detailAtendimento.clientes?.telefone || "—"}</p></div>
+                <div><p className="text-muted-foreground">Email</p><p className="font-medium text-foreground">{detailAtendimento.clientes?.email || "—"}</p></div>
+                <div><p className="text-muted-foreground">Certificado</p><p className="font-medium text-foreground">{detailAtendimento.certificados?.nome || "—"}</p></div>
+                <div><p className="text-muted-foreground">Data/Hora</p><p className="font-medium text-foreground">{formatDate(detailAtendimento.data_hora)} {formatTime(detailAtendimento.data_hora)}</p></div>
+                <div><p className="text-muted-foreground">Valor Repasse</p><p className="font-medium text-foreground">{formatCurrency(Number(detailAtendimento.valor_repasse))}</p></div>
+                {detailAtendimento.tem_comissao && (
+                  <>
+                    <div><p className="text-muted-foreground">Comissão</p><p className="font-medium text-foreground">{detailAtendimento.percentual_comissao}%</p></div>
+                    <div><p className="text-muted-foreground">Valor Comissão</p><p className="font-medium text-foreground">{formatCurrency(Number(detailAtendimento.valor_comissao))}</p></div>
+                  </>
+                )}
+                <div><p className="text-muted-foreground">Boleto</p><p className="font-medium text-foreground">{detailAtendimento.boleto_pago ? "Pago" : "Pendente"}</p></div>
+              </div>
+              {detailAtendimento.observacoes && (
+                <div><p className="text-muted-foreground">Observações</p><p className="text-foreground">{detailAtendimento.observacoes}</p></div>
+              )}
+              {detailAtendimento.data_inicio_certificado && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div><p className="text-muted-foreground">Início Certificado</p><p className="font-medium text-foreground">{formatDate(detailAtendimento.data_inicio_certificado)}</p></div>
+                  <div><p className="text-muted-foreground">Fim Certificado</p><p className="font-medium text-foreground">{formatDate(detailAtendimento.data_fim_certificado || "")}</p></div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New appointment modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Novo Atendimento</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Novo Atendimento</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome do cliente *</Label>
@@ -250,6 +353,10 @@ export default function Agenda() {
                 <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemplo.com" />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>CPF/CNPJ</Label>
+              <Input value={formCpfCnpj} onChange={(e) => setFormCpfCnpj(e.target.value)} placeholder="000.000.000-00" />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Data *</Label>
@@ -257,18 +364,7 @@ export default function Agenda() {
               </div>
               <div className="space-y-2">
                 <Label>Horário *</Label>
-                <div className="max-h-32 overflow-y-auto grid grid-cols-4 gap-1 border rounded-lg p-2">
-                  {timeSlots.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setSelectedTime(t)}
-                      className={`text-xs py-1.5 rounded-md transition-colors ${selectedTime === t ? "bg-secondary text-secondary-foreground font-medium" : "hover:bg-muted text-foreground"}`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+                <Input type="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
@@ -276,7 +372,7 @@ export default function Agenda() {
               <Select value={formCertificado} onValueChange={setFormCertificado}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {certificados.map((c) => (
+                  {certificados.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.nome} {c.valor > 0 && `— ${formatCurrency(c.valor)}`}</SelectItem>
                   ))}
                 </SelectContent>
@@ -294,7 +390,7 @@ export default function Agenda() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Percentual (%)</Label>
-                  <Input type="number" step="0.01" value={formPercentual} onChange={(e) => setFormPercentual(e.target.value)} placeholder="0" />
+                  <Input type="number" step="0.01" value={formPercentual} onChange={(e) => setFormPercentual(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor da comissão</Label>
@@ -307,7 +403,7 @@ export default function Agenda() {
               <Select value={formEtiqueta} onValueChange={setFormEtiqueta}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {etiquetas.map((e) => (
+                  {etiquetas.map(e => (
                     <SelectItem key={e.id} value={e.id}>
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: e.cor }} />
@@ -317,6 +413,10 @@ export default function Agenda() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea value={formObs} onChange={(e) => setFormObs(e.target.value)} placeholder="Observações opcionais..." />
             </div>
             <Button onClick={handleSave} disabled={saving} className="w-full bg-secondary hover:bg-secondary/90">
               {saving ? "Salvando..." : "Agendar Atendimento"}
