@@ -7,13 +7,13 @@
 @layer base {
   :root {
     --background: 220 20% 97%;
-    --foreground: 240 33% 14%;
+    --foreground: 220 30% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 33% 14%;
+    --card-foreground: 220 30% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 33% 14%;
+    --popover-foreground: 220 30% 12%;
 
     --primary: 213 68% 15%;
     --primary-foreground: 0 0% 100%;
@@ -52,8 +52,59 @@
     --sidebar-ring: 213 75% 37%;
     --sidebar-muted: 213 40% 25%;
 
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 20px rgba(24, 95, 165, 0.15);
+  }
+
+  .dark {
+    --background: 222 30% 8%;
+    --foreground: 210 40% 95%;
+
+    --card: 222 25% 11%;
+    --card-foreground: 210 40% 95%;
+
+    --popover: 222 25% 11%;
+    --popover-foreground: 210 40% 95%;
+
+    --primary: 213 75% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 70% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 222 20% 16%;
+    --muted-foreground: 220 15% 55%;
+
+    --accent: 161 60% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 34 80% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --success: 161 60% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 222 15% 20%;
+    --input: 222 15% 20%;
+    --ring: 213 75% 50%;
+
+    --sidebar-background: 222 30% 6%;
+    --sidebar-foreground: 210 40% 85%;
+    --sidebar-primary: 213 70% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 70% 45%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 20% 16%;
+    --sidebar-ring: 213 70% 45%;
+    --sidebar-muted: 222 20% 14%;
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 20px rgba(24, 95, 165, 0.3);
   }
 
   * {
@@ -72,5 +123,14 @@
   }
   .shadow-card-hover {
     box-shadow: var(--shadow-card-hover);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+  .glass-strong {
+    @apply bg-card/60 backdrop-blur-2xl border border-border/30;
   }
 }

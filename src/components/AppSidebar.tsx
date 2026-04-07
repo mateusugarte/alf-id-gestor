@@ -28,7 +28,6 @@ const items = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -40,23 +39,27 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <div className="p-4 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-glow transition-transform duration-300 hover:scale-105">
           <span className="text-accent-foreground font-bold text-sm">ALF</span>
         </div>
-        {!collapsed && <span className="text-sidebar-foreground font-bold text-lg tracking-tight">ALF ID</span>}
+        {!collapsed && (
+          <span className="text-sidebar-foreground font-bold text-lg tracking-tight animate-fade-in">
+            ALF ID
+          </span>
+        )}
       </div>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {items.map((item, i) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       end={item.url === "/dashboard"}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/20 transition-all duration-200"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-glow"
                     >
                       <item.icon className="h-5 w-5 shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
@@ -71,7 +74,10 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 cursor-pointer">
+            <SidebarMenuButton
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-xl transition-all duration-200"
+            >
               <LogOut className="h-5 w-5 shrink-0" />
               {!collapsed && <span>Sair</span>}
             </SidebarMenuButton>
