@@ -3,10 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, AlertCircle, Award, Search } from "lucide-react";
-import { formatDate, formatCurrency, formatTime } from "@/lib/format";
+import { Users, AlertCircle, Award, Search, Plus } from "lucide-react";
+import { formatDate, formatCurrency, formatTime, phoneMask } from "@/lib/format";
+import { toast } from "sonner";
 
 interface Cliente {
   id: string; nome: string; telefone: string; email: string; cpf_cnpj: string; created_at: string;
@@ -30,6 +33,18 @@ export default function Clientes() {
   const [selected, setSelected] = useState<Cliente | null>(null);
   const [historico, setHistorico] = useState<Atendimento[]>([]);
   const [metrics, setMetrics] = useState({ total: 0, pendentes: 0, ativos: 0 });
+
+  // Date filters
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  // New client modal
+  const [newOpen, setNewOpen] = useState(false);
+  const [formNome, setFormNome] = useState("");
+  const [formTelefone, setFormTelefone] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formCpf, setFormCpf] = useState("");
+  const [savingClient, setSavingClient] = useState(false);
 
   useEffect(() => { loadClientes(); }, []);
 
@@ -58,7 +73,11 @@ export default function Clientes() {
 
   const filtered = clientes.filter((c) => {
     const q = search.toLowerCase();
-    return c.nome.toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.cpf_cnpj || "").includes(q);
+    const matchText = c.nome.toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.cpf_cnpj || "").includes(q);
+    if (!matchText) return false;
+    if (dateFrom && c.created_at < dateFrom) return false;
+    if (dateTo && c.created_at > dateTo + "T23:59:59") return false;
+    return true;
   });
 
   const getInitials = (name: string) => name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
@@ -67,13 +86,32 @@ export default function Clientes() {
     return colors[name.charCodeAt(0) % colors.length];
   };
 
+  const handleNewClient = async () => {
+    if (!formNome) { toast.error("Nome é obrigatório"); return; }
+    setSavingClient(true);
+    try {
+      const { error } = await supabase.from("clientes").insert({
+        nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf,
+      });
+      if (error) throw error;
+      toast.success("Cliente adicionado!");
+      setNewOpen(false);
+      setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf("");
+      loadClientes();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar");
+    } finally { setSavingClient(false); }
+  };
+
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-        <span className="text-sm text-muted-foreground">{metrics.total} clientes</span>
+        <Button onClick={() => setNewOpen(true)} className="bg-secondary hover:bg-secondary/90">
+          <Plus className="h-4 w-4 mr-2" /> Novo Cliente
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -94,9 +132,14 @@ export default function Clientes() {
         ))}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-10" placeholder="Buscar por nome, email ou CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      {/* Search + date filters */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-10" placeholder="Buscar por nome, email ou CPF/CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Input type="date" className="w-auto" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Data início" />
+        <Input type="date" className="w-auto" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Data fim" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -118,11 +161,10 @@ export default function Clientes() {
         ))}
       </div>
 
+      {/* Client detail */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selected?.nome}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{selected?.nome}</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -161,6 +203,36 @@ export default function Clientes() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New client modal */}
+      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input value={formTelefone} onChange={(e) => setFormTelefone(phoneMask(e.target.value))} placeholder="(99) 99999-9999" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemplo.com" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>CPF/CNPJ</Label>
+              <Input value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="000.000.000-00" />
+            </div>
+            <Button onClick={handleNewClient} disabled={savingClient} className="w-full bg-secondary hover:bg-secondary/90">
+              {savingClient ? "Salvando..." : "Adicionar Cliente"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
