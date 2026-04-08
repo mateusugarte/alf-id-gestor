@@ -25,6 +25,7 @@ export type Database = {
           data_inicio_certificado: string | null
           etiqueta_id: string | null
           id: string
+          numero_pedido: string | null
           observacoes: string | null
           percentual_comissao: number | null
           protocolo: string | null
@@ -43,6 +44,7 @@ export type Database = {
           data_inicio_certificado?: string | null
           etiqueta_id?: string | null
           id?: string
+          numero_pedido?: string | null
           observacoes?: string | null
           percentual_comissao?: number | null
           protocolo?: string | null
@@ -61,6 +63,7 @@ export type Database = {
           data_inicio_certificado?: string | null
           etiqueta_id?: string | null
           id?: string
+          numero_pedido?: string | null
           observacoes?: string | null
           percentual_comissao?: number | null
           protocolo?: string | null
@@ -127,6 +130,7 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          numero_pedido: string | null
           telefone: string | null
         }
         Insert: {
@@ -135,6 +139,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome: string
+          numero_pedido?: string | null
           telefone?: string | null
         }
         Update: {
@@ -143,6 +148,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string
+          numero_pedido?: string | null
           telefone?: string | null
         }
         Relationships: []
