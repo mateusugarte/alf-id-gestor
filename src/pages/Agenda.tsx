@@ -18,7 +18,7 @@ interface Etiqueta { id: string; nome: string; cor: string; }
 interface Atendimento {
   id: string; data_hora: string; status: string; protocolo: string; valor_repasse: number;
   boleto_pago: boolean; observacoes: string | null; tem_comissao: boolean; percentual_comissao: number; valor_comissao: number;
-  data_inicio_certificado: string | null; data_fim_certificado: string | null;
+  data_inicio_certificado: string | null; data_fim_certificado: string | null; numero_pedido: string | null;
   clientes: { nome: string; telefone: string; email: string } | null;
   certificados: { nome: string } | null;
   etiquetas: { nome: string; cor: string } | null;
