@@ -12,7 +12,7 @@ import { formatDate, formatCurrency, formatTime, phoneMask } from "@/lib/format"
 import { toast } from "sonner";
 
 interface Cliente {
-  id: string; nome: string; telefone: string; email: string; cpf_cnpj: string; created_at: string;
+  id: string; nome: string; telefone: string; email: string; cpf_cnpj: string; created_at: string; numero_pedido: string | null;
 }
 interface Atendimento {
   id: string; data_hora: string; status: string; protocolo: string; valor_repasse: number; boleto_pago: boolean;
@@ -168,6 +168,7 @@ export default function Clientes() {
                 <div><span className="text-muted-foreground">Email:</span> {selected.email || "—"}</div>
                 <div><span className="text-muted-foreground">Telefone:</span> {selected.telefone || "—"}</div>
                 <div><span className="text-muted-foreground">CPF/CNPJ:</span> {selected.cpf_cnpj || "—"}</div>
+                <div><span className="text-muted-foreground">Nº Pedido:</span> {selected.numero_pedido || "—"}</div>
                 <div><span className="text-muted-foreground">Cadastro:</span> {formatDate(selected.created_at)}</div>
               </div>
               <h3 className="font-semibold text-foreground">Histórico de Atendimentos</h3>
