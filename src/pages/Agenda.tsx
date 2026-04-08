@@ -325,6 +325,9 @@ export default function Agenda() {
                   </>
                 )}
                 <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Boleto</p><p className="font-medium text-foreground">{detailAtendimento.boleto_pago ? "Pago" : "Pendente"}</p></div>
+                {detailAtendimento.numero_pedido && (
+                  <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Nº Pedido</p><p className="font-medium text-foreground">{detailAtendimento.numero_pedido}</p></div>
+                )}
               </div>
               {detailAtendimento.observacoes && (
                 <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Observações</p><p className="text-foreground">{detailAtendimento.observacoes}</p></div>
@@ -362,6 +365,10 @@ export default function Agenda() {
             <div className="space-y-2">
               <Label>CPF/CNPJ</Label>
               <Input value={formCpfCnpj} onChange={(e) => setFormCpfCnpj(e.target.value)} placeholder="000.000.000-00" className="rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Número de Pedido</Label>
+              <Input value={formNumeroPedido} onChange={(e) => setFormNumeroPedido(e.target.value)} placeholder="Nº do pedido" className="rounded-xl" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
