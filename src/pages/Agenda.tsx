@@ -18,7 +18,7 @@ interface Etiqueta { id: string; nome: string; cor: string; }
 interface Atendimento {
   id: string; data_hora: string; status: string; protocolo: string; valor_repasse: number;
   boleto_pago: boolean; observacoes: string | null; tem_comissao: boolean; percentual_comissao: number; valor_comissao: number;
-  data_inicio_certificado: string | null; data_fim_certificado: string | null;
+  data_inicio_certificado: string | null; data_fim_certificado: string | null; numero_pedido: string | null;
   clientes: { nome: string; telefone: string; email: string } | null;
   certificados: { nome: string } | null;
   etiquetas: { nome: string; cor: string } | null;
@@ -60,6 +60,7 @@ export default function Agenda() {
   const [formPercentual, setFormPercentual] = useState("");
   const [formEtiqueta, setFormEtiqueta] = useState("");
   const [formObs, setFormObs] = useState("");
+  const [formNumeroPedido, setFormNumeroPedido] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Detail modal
@@ -115,7 +116,7 @@ export default function Agenda() {
     setSelectedTime("");
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
     setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
-    setFormPercentual(""); setFormEtiqueta(""); setFormObs("");
+    setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
     setModalOpen(true);
   };
 
@@ -138,9 +139,13 @@ export default function Agenda() {
         .or(`email.eq.${formEmail},telefone.eq.${formTelefone}`).limit(1);
       if (existing && existing.length > 0) {
         clienteId = existing[0].id;
+        // Always update numero_pedido on the client
+        if (formNumeroPedido) {
+          await supabase.from("clientes").update({ numero_pedido: formNumeroPedido }).eq("id", clienteId);
+        }
       } else {
         const { data: newC, error: cErr } = await supabase.from("clientes")
-          .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj })
+          .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj, numero_pedido: formNumeroPedido || null })
           .select("id").single();
         if (cErr) throw cErr;
         clienteId = newC.id;
@@ -155,7 +160,7 @@ export default function Agenda() {
         etiqueta_id: formEtiqueta || null, data_hora: dataHora,
         valor_repasse: valorRepasse, tem_comissao: formTemComissao,
         percentual_comissao: parseFloat(formPercentual) || 0,
-        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null,
+        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
       });
       if (error) throw error;
       toast.success(`Agendado! Protocolo: ${protocolo}`);
@@ -320,6 +325,9 @@ export default function Agenda() {
                   </>
                 )}
                 <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Boleto</p><p className="font-medium text-foreground">{detailAtendimento.boleto_pago ? "Pago" : "Pendente"}</p></div>
+                {detailAtendimento.numero_pedido && (
+                  <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Nº Pedido</p><p className="font-medium text-foreground">{detailAtendimento.numero_pedido}</p></div>
+                )}
               </div>
               {detailAtendimento.observacoes && (
                 <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Observações</p><p className="text-foreground">{detailAtendimento.observacoes}</p></div>
@@ -357,6 +365,10 @@ export default function Agenda() {
             <div className="space-y-2">
               <Label>CPF/CNPJ</Label>
               <Input value={formCpfCnpj} onChange={(e) => setFormCpfCnpj(e.target.value)} placeholder="000.000.000-00" className="rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Número de Pedido</Label>
+              <Input value={formNumeroPedido} onChange={(e) => setFormNumeroPedido(e.target.value)} placeholder="Nº do pedido" className="rounded-xl" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
