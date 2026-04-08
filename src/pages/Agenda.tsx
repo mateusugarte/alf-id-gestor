@@ -60,6 +60,7 @@ export default function Agenda() {
   const [formPercentual, setFormPercentual] = useState("");
   const [formEtiqueta, setFormEtiqueta] = useState("");
   const [formObs, setFormObs] = useState("");
+  const [formNumeroPedido, setFormNumeroPedido] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Detail modal
@@ -115,7 +116,7 @@ export default function Agenda() {
     setSelectedTime("");
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
     setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
-    setFormPercentual(""); setFormEtiqueta(""); setFormObs("");
+    setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
     setModalOpen(true);
   };
 
@@ -138,9 +139,13 @@ export default function Agenda() {
         .or(`email.eq.${formEmail},telefone.eq.${formTelefone}`).limit(1);
       if (existing && existing.length > 0) {
         clienteId = existing[0].id;
+        // Always update numero_pedido on the client
+        if (formNumeroPedido) {
+          await supabase.from("clientes").update({ numero_pedido: formNumeroPedido }).eq("id", clienteId);
+        }
       } else {
         const { data: newC, error: cErr } = await supabase.from("clientes")
-          .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj })
+          .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj, numero_pedido: formNumeroPedido || null })
           .select("id").single();
         if (cErr) throw cErr;
         clienteId = newC.id;
@@ -155,7 +160,7 @@ export default function Agenda() {
         etiqueta_id: formEtiqueta || null, data_hora: dataHora,
         valor_repasse: valorRepasse, tem_comissao: formTemComissao,
         percentual_comissao: parseFloat(formPercentual) || 0,
-        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null,
+        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
       });
       if (error) throw error;
       toast.success(`Agendado! Protocolo: ${protocolo}`);
