@@ -50,9 +50,11 @@ export default function Login() {
 
       <Card className="w-full max-w-md glass shadow-card-hover rounded-2xl animate-scale-in border-border/50">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-glow transition-transform duration-500 hover:scale-110 hover:rotate-3">
-            <span className="text-accent-foreground font-extrabold text-xl">ALF</span>
-          </div>
+          <img
+            src="https://jlzckqjggdzpzqiuvgcv.supabase.co/storage/v1/object/public/veiculos/WhatsApp%20Image%202026-04-09%20at%2016.06.33.jpeg"
+            alt="ALF ID"
+            className="mx-auto w-16 h-16 rounded-2xl object-cover shadow-glow transition-transform duration-500 hover:scale-110 hover:rotate-3"
+          />
           <CardTitle className="text-2xl font-bold text-foreground">ALF ID</CardTitle>
           <p className="text-muted-foreground text-sm">Sistema de Gestão para Certificadora Digital</p>
         </CardHeader>

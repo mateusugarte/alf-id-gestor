@@ -39,9 +39,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <div className="p-4 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-secondary to-accent flex items-center justify-center shadow-glow transition-transform duration-300 hover:scale-105">
-          <span className="text-accent-foreground font-bold text-sm">ALF</span>
-        </div>
+        <img
+          src="https://jlzckqjggdzpzqiuvgcv.supabase.co/storage/v1/object/public/veiculos/WhatsApp%20Image%202026-04-09%20at%2016.06.33.jpeg"
+          alt="ALF ID"
+          className="w-9 h-9 rounded-xl object-cover shadow-glow transition-transform duration-300 hover:scale-105"
+        />
         {!collapsed && (
           <span className="text-sidebar-foreground font-bold text-lg tracking-tight animate-fade-in">
             ALF ID
