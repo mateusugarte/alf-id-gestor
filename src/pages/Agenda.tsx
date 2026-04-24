@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 interface Certificado { id: string; nome: string; valor: number; }
 interface Etiqueta { id: string; nome: string; cor: string; }
+interface ClienteLite { id: string; nome: string; telefone: string | null; email: string | null; cpf_cnpj: string | null; numero_pedido: string | null; }
 interface Atendimento {
   id: string; data_hora: string; status: string; protocolo: string; valor_repasse: number;
   boleto_pago: boolean; observacoes: string | null; tem_comissao: boolean; percentual_comissao: number; valor_comissao: number;
@@ -61,6 +62,11 @@ export default function Agenda() {
   const [formEtiqueta, setFormEtiqueta] = useState("");
   const [formObs, setFormObs] = useState("");
   const [formNumeroPedido, setFormNumeroPedido] = useState("");
+  const [clienteMode, setClienteMode] = useState<"novo" | "existente">("novo");
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [clienteResultados, setClienteResultados] = useState<ClienteLite[]>([]);
+  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteLite | null>(null);
+  const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Detail modal
@@ -117,7 +123,32 @@ export default function Agenda() {
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
     setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
     setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
+    setClienteMode("novo");
+    setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
     setModalOpen(true);
+  };
+
+  const buscarClientes = async (termo: string) => {
+    setClienteBusca(termo);
+    if (!termo.trim() || termo.trim().length < 2) { setClienteResultados([]); return; }
+    setBuscandoCliente(true);
+    const { data } = await supabase.from("clientes")
+      .select("id, nome, telefone, email, cpf_cnpj, numero_pedido")
+      .ilike("nome", `%${termo.trim()}%`)
+      .order("nome").limit(10);
+    setClienteResultados((data as any) || []);
+    setBuscandoCliente(false);
+  };
+
+  const selecionarCliente = (c: ClienteLite) => {
+    setClienteSelecionado(c);
+    setFormNome(c.nome);
+    setFormTelefone(c.telefone || "");
+    setFormEmail(c.email || "");
+    setFormCpfCnpj(c.cpf_cnpj || "");
+    setFormNumeroPedido(c.numero_pedido || "");
+    setClienteResultados([]);
+    setClienteBusca(c.nome);
   };
 
   const openDetail = (a: Atendimento) => {
@@ -129,28 +160,28 @@ export default function Agenda() {
     ? (parseFloat(formValor) * parseFloat(formPercentual) / 100) : 0;
 
   const handleSave = async () => {
+    if (clienteMode === "existente" && !clienteSelecionado) {
+      toast.error("Selecione um cliente cadastrado"); return;
+    }
     if (!formNome || !selectedDate || !selectedTime || !formCertificado) {
       toast.error("Preencha os campos obrigatórios"); return;
     }
     setSaving(true);
     try {
       let clienteId: string | null = null;
-      // Only try to match an existing client when we have a real identifier
-      const orFilters: string[] = [];
-      if (formCpfCnpj?.trim()) orFilters.push(`cpf_cnpj.eq.${formCpfCnpj.trim()}`);
-      if (formEmail?.trim()) orFilters.push(`email.eq.${formEmail.trim()}`);
-      if (formTelefone?.trim()) orFilters.push(`telefone.eq.${formTelefone.trim()}`);
-      if (orFilters.length > 0) {
-        const { data: existing } = await supabase.from("clientes").select("id")
-          .or(orFilters.join(",")).limit(1);
-        if (existing && existing.length > 0) {
-          clienteId = existing[0].id;
-          if (formNumeroPedido) {
-            await supabase.from("clientes").update({ numero_pedido: formNumeroPedido }).eq("id", clienteId);
-          }
+
+      if (clienteMode === "existente" && clienteSelecionado) {
+        clienteId = clienteSelecionado.id;
+        // Atualiza campos se preenchidos/alterados
+        const updates: any = {};
+        if (formTelefone && formTelefone !== (clienteSelecionado.telefone || "")) updates.telefone = formTelefone;
+        if (formEmail && formEmail !== (clienteSelecionado.email || "")) updates.email = formEmail;
+        if (formCpfCnpj && formCpfCnpj !== (clienteSelecionado.cpf_cnpj || "")) updates.cpf_cnpj = formCpfCnpj;
+        if (formNumeroPedido) updates.numero_pedido = formNumeroPedido;
+        if (Object.keys(updates).length > 0) {
+          await supabase.from("clientes").update(updates).eq("id", clienteId);
         }
-      }
-      if (!clienteId) {
+      } else {
         const { data: newC, error: cErr } = await supabase.from("clientes")
           .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj, numero_pedido: formNumeroPedido || null })
           .select("id").single();
@@ -387,10 +418,94 @@ export default function Agenda() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader><DialogTitle>Novo Atendimento</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do cliente *</Label>
-              <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" className="rounded-xl" />
+            {/* Cliente: existente ou novo */}
+            <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+              <Label>Cliente já cadastrado?</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={clienteMode === "existente" ? "default" : "outline"}
+                  className="rounded-xl flex-1"
+                  onClick={() => {
+                    setClienteMode("existente");
+                    setClienteSelecionado(null);
+                    setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj(""); setFormNumeroPedido("");
+                    setClienteBusca(""); setClienteResultados([]);
+                  }}
+                >
+                  Sim, buscar cliente
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={clienteMode === "novo" ? "default" : "outline"}
+                  className="rounded-xl flex-1"
+                  onClick={() => {
+                    setClienteMode("novo");
+                    setClienteSelecionado(null);
+                    setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj(""); setFormNumeroPedido("");
+                    setClienteBusca(""); setClienteResultados([]);
+                  }}
+                >
+                  Não, criar novo
+                </Button>
+              </div>
+
+              {clienteMode === "existente" && (
+                <div className="space-y-2 pt-2">
+                  <Label className="text-xs">Buscar pelo nome</Label>
+                  <Input
+                    value={clienteBusca}
+                    onChange={(e) => buscarClientes(e.target.value)}
+                    placeholder="Digite o nome do cliente..."
+                    className="rounded-xl"
+                  />
+                  {buscandoCliente && <p className="text-xs text-muted-foreground">Buscando...</p>}
+                  {clienteResultados.length > 0 && !clienteSelecionado && (
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-xl bg-card divide-y divide-border">
+                      {clienteResultados.map(c => (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => selecionarCliente(c)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+                        >
+                          <p className="font-medium text-foreground">{c.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.cpf_cnpj || c.email || c.telefone || "Sem contato"}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {clienteSelecionado && (
+                    <div className="p-2 rounded-xl bg-secondary/10 border border-secondary/30 text-sm">
+                      <p className="font-medium text-foreground">✓ {clienteSelecionado.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {clienteSelecionado.cpf_cnpj || clienteSelecionado.email || clienteSelecionado.telefone || "Sem contato"}
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs mt-1"
+                        onClick={() => { setClienteSelecionado(null); setClienteBusca(""); setFormNome(""); }}
+                      >
+                        Trocar cliente
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {(clienteMode === "novo" || clienteSelecionado) && (
+              <div className="space-y-2">
+                <Label>Nome do cliente *</Label>
+                <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" className="rounded-xl" disabled={clienteMode === "existente"} />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Telefone</Label>
