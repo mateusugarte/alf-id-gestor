@@ -418,10 +418,94 @@ export default function Agenda() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader><DialogTitle>Novo Atendimento</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do cliente *</Label>
-              <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" className="rounded-xl" />
+            {/* Cliente: existente ou novo */}
+            <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+              <Label>Cliente já cadastrado?</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={clienteMode === "existente" ? "default" : "outline"}
+                  className="rounded-xl flex-1"
+                  onClick={() => {
+                    setClienteMode("existente");
+                    setClienteSelecionado(null);
+                    setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj(""); setFormNumeroPedido("");
+                    setClienteBusca(""); setClienteResultados([]);
+                  }}
+                >
+                  Sim, buscar cliente
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={clienteMode === "novo" ? "default" : "outline"}
+                  className="rounded-xl flex-1"
+                  onClick={() => {
+                    setClienteMode("novo");
+                    setClienteSelecionado(null);
+                    setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj(""); setFormNumeroPedido("");
+                    setClienteBusca(""); setClienteResultados([]);
+                  }}
+                >
+                  Não, criar novo
+                </Button>
+              </div>
+
+              {clienteMode === "existente" && (
+                <div className="space-y-2 pt-2">
+                  <Label className="text-xs">Buscar pelo nome</Label>
+                  <Input
+                    value={clienteBusca}
+                    onChange={(e) => buscarClientes(e.target.value)}
+                    placeholder="Digite o nome do cliente..."
+                    className="rounded-xl"
+                  />
+                  {buscandoCliente && <p className="text-xs text-muted-foreground">Buscando...</p>}
+                  {clienteResultados.length > 0 && !clienteSelecionado && (
+                    <div className="max-h-48 overflow-y-auto border border-border rounded-xl bg-card divide-y divide-border">
+                      {clienteResultados.map(c => (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => selecionarCliente(c)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+                        >
+                          <p className="font-medium text-foreground">{c.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.cpf_cnpj || c.email || c.telefone || "Sem contato"}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {clienteSelecionado && (
+                    <div className="p-2 rounded-xl bg-secondary/10 border border-secondary/30 text-sm">
+                      <p className="font-medium text-foreground">✓ {clienteSelecionado.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {clienteSelecionado.cpf_cnpj || clienteSelecionado.email || clienteSelecionado.telefone || "Sem contato"}
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs mt-1"
+                        onClick={() => { setClienteSelecionado(null); setClienteBusca(""); setFormNome(""); }}
+                      >
+                        Trocar cliente
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {(clienteMode === "novo" || clienteSelecionado) && (
+              <div className="space-y-2">
+                <Label>Nome do cliente *</Label>
+                <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" className="rounded-xl" disabled={clienteMode === "existente"} />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Telefone</Label>
