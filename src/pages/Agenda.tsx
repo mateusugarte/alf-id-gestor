@@ -338,6 +338,38 @@ export default function Agenda() {
                   <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Fim Certificado</p><p className="font-medium text-foreground">{formatDate(detailAtendimento.data_fim_certificado || "")}</p></div>
                 </div>
               )}
+              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
+                <Button
+                  size="sm"
+                  variant={detailAtendimento.status === "concluido" ? "outline" : "default"}
+                  className="rounded-xl flex-1"
+                  onClick={async () => {
+                    const novoStatus = detailAtendimento.status === "concluido" ? "agendado" : "concluido";
+                    const { error } = await supabase.from("atendimentos").update({ status: novoStatus }).eq("id", detailAtendimento.id);
+                    if (error) { toast.error(error.message); return; }
+                    toast.success(novoStatus === "concluido" ? "Atendimento concluído!" : "Marcado como agendado");
+                    setDetailAtendimento({ ...detailAtendimento, status: novoStatus });
+                    loadData();
+                  }}
+                >
+                  {detailAtendimento.status === "concluido" ? "Reabrir atendimento" : "Marcar como concluído"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={detailAtendimento.boleto_pago ? "outline" : "default"}
+                  className="rounded-xl flex-1"
+                  onClick={async () => {
+                    const novoPago = !detailAtendimento.boleto_pago;
+                    const { error } = await supabase.from("atendimentos").update({ boleto_pago: novoPago }).eq("id", detailAtendimento.id);
+                    if (error) { toast.error(error.message); return; }
+                    toast.success(novoPago ? "Pagamento coletado!" : "Marcado como pendente");
+                    setDetailAtendimento({ ...detailAtendimento, boleto_pago: novoPago });
+                    loadData();
+                  }}
+                >
+                  {detailAtendimento.boleto_pago ? "Desfazer pagamento" : "Marcar pagamento coletado"}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
