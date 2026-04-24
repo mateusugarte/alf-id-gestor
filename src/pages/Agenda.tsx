@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 interface Certificado { id: string; nome: string; valor: number; }
 interface Etiqueta { id: string; nome: string; cor: string; }
+interface ClienteLite { id: string; nome: string; telefone: string | null; email: string | null; cpf_cnpj: string | null; numero_pedido: string | null; }
 interface Atendimento {
   id: string; data_hora: string; status: string; protocolo: string; valor_repasse: number;
   boleto_pago: boolean; observacoes: string | null; tem_comissao: boolean; percentual_comissao: number; valor_comissao: number;
