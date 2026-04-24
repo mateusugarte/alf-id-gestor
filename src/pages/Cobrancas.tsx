@@ -24,6 +24,7 @@ export default function Cobrancas() {
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Cobranca | null>(null);
   const [editValor, setEditValor] = useState("");
@@ -31,18 +32,26 @@ export default function Cobrancas() {
   const [editBoleto, setEditBoleto] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadCobrancas(); }, [dateFrom, dateTo]);
+  useEffect(() => { loadCobrancas(); }, [dateFrom, dateTo, showAll]);
 
   const loadCobrancas = async () => {
     let query = supabase.from("atendimentos")
       .select("id, data_hora, valor_repasse, protocolo, boleto_pago, status, clientes(nome, telefone, email), certificados(nome)")
-      .eq("boleto_pago", false).eq("status", "concluido")
       .order("data_hora", { ascending: true });
+    if (!showAll) {
+      query = query.eq("boleto_pago", false).neq("status", "cancelado");
+    }
     if (dateFrom) query = query.gte("data_hora", dateFrom);
     if (dateTo) query = query.lte("data_hora", dateTo + "T23:59:59");
     const { data } = await query;
     setCobrancas((data as any) || []);
     setLoading(false);
+  };
+
+  const marcarConcluidoEPago = async (id: string) => {
+    await supabase.from("atendimentos").update({ boleto_pago: true, status: "concluido" }).eq("id", id);
+    toast.success("Atendimento concluído e pagamento coletado!");
+    loadCobrancas();
   };
 
   const marcarPago = async (id: string) => {
@@ -119,12 +128,15 @@ export default function Cobrancas() {
         </Card>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-3">
+      <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
         <Input type="date" className="w-auto rounded-xl" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="Data início" />
         <Input type="date" className="w-auto rounded-xl" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Data fim" />
         {(dateFrom || dateTo) && (
           <Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setDateFrom(""); setDateTo(""); }}>Limpar filtro</Button>
         )}
+        <Button variant={showAll ? "default" : "outline"} size="sm" className="rounded-xl" onClick={() => setShowAll(!showAll)}>
+          {showAll ? "Ver só pendentes" : "Ver todos atendimentos"}
+        </Button>
       </div>
 
       {cobrancas.length === 0 ? (
@@ -163,25 +175,35 @@ export default function Cobrancas() {
                         <Badge variant={dias > 30 ? "destructive" : "secondary"} className="text-[10px]">{dias}d</Badge>
                       </td>
                       <td className="p-3 text-right">
-                        <div className="flex gap-1 justify-end">
+                        <div className="flex gap-1 justify-end items-center flex-wrap">
+                          <Badge className={`text-[10px] border-0 ${c.status === "concluido" ? "bg-success text-success-foreground" : c.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                            {c.status}
+                          </Badge>
+                          <Badge className={`text-[10px] border-0 ${c.boleto_pago ? "bg-success text-success-foreground" : "bg-warning text-warning-foreground"}`}>
+                            {c.boleto_pago ? "Pago" : "Pendente"}
+                          </Badge>
                           <Button size="sm" variant="ghost" className="h-7 rounded-lg" onClick={() => openEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="text-xs h-7 rounded-lg">Pago</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-2xl">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar pagamento</AlertDialogTitle>
-                                <AlertDialogDescription>Marcar o boleto de {c.clientes?.nome} como pago?</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                                <AlertDialogAction className="rounded-xl" onClick={() => marcarPago(c.id)}>Confirmar</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          {!c.boleto_pago && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="default" className="text-xs h-7 rounded-lg">Concluir + Pago</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="rounded-2xl">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar conclusão e pagamento</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Marcar atendimento de {c.clientes?.nome} como <strong>concluído</strong> e pagamento <strong>coletado</strong>?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction className="rounded-xl" onClick={() => marcarConcluidoEPago(c.id)}>Confirmar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                           <Button size="sm" variant="ghost" className="h-7 rounded-lg" onClick={() => copyContato(c)}><Copy className="h-3 w-3" /></Button>
                         </div>
                       </td>

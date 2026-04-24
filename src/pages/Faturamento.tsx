@@ -30,12 +30,14 @@ export default function Faturamento() {
     const start = new Date(year, month, 1).toISOString();
     const end = new Date(year, month + 1, 1).toISOString();
     const { data: atendimentos } = await supabase.from("atendimentos")
-      .select("valor_repasse, valor_comissao, boleto_pago, status, etiqueta_id, etiquetas(nome)")
+      .select("valor_repasse, valor_comissao, boleto_pago, status, etiqueta_id, certificados(valor), etiquetas(nome)")
       .gte("data_hora", start).lt("data_hora", end);
     const list = (atendimentos as any) || [];
+    // Faturamento = soma do VALOR DO CERTIFICADO dos atendimentos concluídos
     const concluidos = list.filter((a: any) => a.status === "concluido");
-    setFaturamento(concluidos.reduce((s: number, a: any) => s + (Number(a.valor_repasse) || 0), 0));
-    setPendentes(concluidos.filter((a: any) => !a.boleto_pago).reduce((s: number, a: any) => s + (Number(a.valor_repasse) || 0), 0));
+    const valorCert = (a: any) => Number(a.certificados?.valor) || 0;
+    setFaturamento(concluidos.reduce((s: number, a: any) => s + valorCert(a), 0));
+    setPendentes(concluidos.filter((a: any) => !a.boleto_pago).reduce((s: number, a: any) => s + valorCert(a), 0));
     setTotalRepasses(list.reduce((s: number, a: any) => s + (Number(a.valor_repasse) || 0), 0));
     setTotalComissoes(list.reduce((s: number, a: any) => s + (Number(a.valor_comissao) || 0), 0));
     const grouped: Record<string, ResumoResp> = {};

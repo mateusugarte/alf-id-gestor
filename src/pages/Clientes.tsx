@@ -63,7 +63,17 @@ export default function Clientes() {
 
   const toggleBoleto = async (atId: string, val: boolean) => {
     await supabase.from("atendimentos").update({ boleto_pago: val }).eq("id", atId);
+    toast.success(val ? "Pagamento coletado!" : "Marcado como pendente");
     if (selected) openDetails(selected);
+    loadClientes();
+  };
+
+  const toggleConcluido = async (atId: string, atual: string) => {
+    const novo = atual === "concluido" ? "agendado" : "concluido";
+    await supabase.from("atendimentos").update({ status: novo }).eq("id", atId);
+    toast.success(novo === "concluido" ? "Atendimento concluído!" : "Reaberto");
+    if (selected) openDetails(selected);
+    loadClientes();
   };
 
   const filtered = clientes.filter((c) => {
@@ -188,13 +198,19 @@ export default function Clientes() {
                         <p className="text-foreground">{a.certificados?.nome} • {formatDate(a.data_hora)} {formatTime(a.data_hora)}</p>
                         <p className="text-muted-foreground">{formatCurrency(a.valor_repasse)}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         {a.etiquetas && <Badge style={{ backgroundColor: a.etiquetas.cor }} className="text-[10px] border-0 text-primary-foreground">{a.etiquetas.nome}</Badge>}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleConcluido(a.id, a.status); }}
+                          className={`text-xs px-2 py-1 rounded-lg transition-colors duration-200 ${a.status === "concluido" ? "bg-success/20 text-success" : "bg-secondary/20 text-secondary"}`}
+                        >
+                          {a.status === "concluido" ? "Concluído" : "Concluir"}
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleBoleto(a.id, !a.boleto_pago); }}
                           className={`text-xs px-2 py-1 rounded-lg transition-colors duration-200 ${a.boleto_pago ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}
                         >
-                          {a.boleto_pago ? "Pago" : "Pendente"}
+                          {a.boleto_pago ? "Pago" : "Coletar pgto"}
                         </button>
                       </div>
                     </div>
