@@ -62,6 +62,11 @@ export default function Agenda() {
   const [formEtiqueta, setFormEtiqueta] = useState("");
   const [formObs, setFormObs] = useState("");
   const [formNumeroPedido, setFormNumeroPedido] = useState("");
+  const [clienteMode, setClienteMode] = useState<"novo" | "existente">("novo");
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [clienteResultados, setClienteResultados] = useState<ClienteLite[]>([]);
+  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteLite | null>(null);
+  const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Detail modal
