@@ -134,16 +134,23 @@ export default function Agenda() {
     }
     setSaving(true);
     try {
-      let clienteId: string;
-      const { data: existing } = await supabase.from("clientes").select("id")
-        .or(`email.eq.${formEmail},telefone.eq.${formTelefone}`).limit(1);
-      if (existing && existing.length > 0) {
-        clienteId = existing[0].id;
-        // Always update numero_pedido on the client
-        if (formNumeroPedido) {
-          await supabase.from("clientes").update({ numero_pedido: formNumeroPedido }).eq("id", clienteId);
+      let clienteId: string | null = null;
+      // Only try to match an existing client when we have a real identifier
+      const orFilters: string[] = [];
+      if (formCpfCnpj?.trim()) orFilters.push(`cpf_cnpj.eq.${formCpfCnpj.trim()}`);
+      if (formEmail?.trim()) orFilters.push(`email.eq.${formEmail.trim()}`);
+      if (formTelefone?.trim()) orFilters.push(`telefone.eq.${formTelefone.trim()}`);
+      if (orFilters.length > 0) {
+        const { data: existing } = await supabase.from("clientes").select("id")
+          .or(orFilters.join(",")).limit(1);
+        if (existing && existing.length > 0) {
+          clienteId = existing[0].id;
+          if (formNumeroPedido) {
+            await supabase.from("clientes").update({ numero_pedido: formNumeroPedido }).eq("id", clienteId);
+          }
         }
-      } else {
+      }
+      if (!clienteId) {
         const { data: newC, error: cErr } = await supabase.from("clientes")
           .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj, numero_pedido: formNumeroPedido || null })
           .select("id").single();
