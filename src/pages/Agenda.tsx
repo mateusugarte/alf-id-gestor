@@ -160,28 +160,28 @@ export default function Agenda() {
     ? (parseFloat(formValor) * parseFloat(formPercentual) / 100) : 0;
 
   const handleSave = async () => {
+    if (clienteMode === "existente" && !clienteSelecionado) {
+      toast.error("Selecione um cliente cadastrado"); return;
+    }
     if (!formNome || !selectedDate || !selectedTime || !formCertificado) {
       toast.error("Preencha os campos obrigatórios"); return;
     }
     setSaving(true);
     try {
       let clienteId: string | null = null;
-      // Only try to match an existing client when we have a real identifier
-      const orFilters: string[] = [];
-      if (formCpfCnpj?.trim()) orFilters.push(`cpf_cnpj.eq.${formCpfCnpj.trim()}`);
-      if (formEmail?.trim()) orFilters.push(`email.eq.${formEmail.trim()}`);
-      if (formTelefone?.trim()) orFilters.push(`telefone.eq.${formTelefone.trim()}`);
-      if (orFilters.length > 0) {
-        const { data: existing } = await supabase.from("clientes").select("id")
-          .or(orFilters.join(",")).limit(1);
-        if (existing && existing.length > 0) {
-          clienteId = existing[0].id;
-          if (formNumeroPedido) {
-            await supabase.from("clientes").update({ numero_pedido: formNumeroPedido }).eq("id", clienteId);
-          }
+
+      if (clienteMode === "existente" && clienteSelecionado) {
+        clienteId = clienteSelecionado.id;
+        // Atualiza campos se preenchidos/alterados
+        const updates: any = {};
+        if (formTelefone && formTelefone !== (clienteSelecionado.telefone || "")) updates.telefone = formTelefone;
+        if (formEmail && formEmail !== (clienteSelecionado.email || "")) updates.email = formEmail;
+        if (formCpfCnpj && formCpfCnpj !== (clienteSelecionado.cpf_cnpj || "")) updates.cpf_cnpj = formCpfCnpj;
+        if (formNumeroPedido) updates.numero_pedido = formNumeroPedido;
+        if (Object.keys(updates).length > 0) {
+          await supabase.from("clientes").update(updates).eq("id", clienteId);
         }
-      }
-      if (!clienteId) {
+      } else {
         const { data: newC, error: cErr } = await supabase.from("clientes")
           .insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpfCnpj, numero_pedido: formNumeroPedido || null })
           .select("id").single();
