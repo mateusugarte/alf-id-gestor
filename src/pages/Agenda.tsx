@@ -123,7 +123,32 @@ export default function Agenda() {
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
     setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
     setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
+    setClienteMode("novo");
+    setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
     setModalOpen(true);
+  };
+
+  const buscarClientes = async (termo: string) => {
+    setClienteBusca(termo);
+    if (!termo.trim() || termo.trim().length < 2) { setClienteResultados([]); return; }
+    setBuscandoCliente(true);
+    const { data } = await supabase.from("clientes")
+      .select("id, nome, telefone, email, cpf_cnpj, numero_pedido")
+      .ilike("nome", `%${termo.trim()}%`)
+      .order("nome").limit(10);
+    setClienteResultados((data as any) || []);
+    setBuscandoCliente(false);
+  };
+
+  const selecionarCliente = (c: ClienteLite) => {
+    setClienteSelecionado(c);
+    setFormNome(c.nome);
+    setFormTelefone(c.telefone || "");
+    setFormEmail(c.email || "");
+    setFormCpfCnpj(c.cpf_cnpj || "");
+    setFormNumeroPedido(c.numero_pedido || "");
+    setClienteResultados([]);
+    setClienteBusca(c.nome);
   };
 
   const openDetail = (a: Atendimento) => {
