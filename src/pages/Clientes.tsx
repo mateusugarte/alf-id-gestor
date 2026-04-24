@@ -40,6 +40,7 @@ export default function Clientes() {
   const [formTelefone, setFormTelefone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formCpf, setFormCpf] = useState("");
+  const [formNumeroPedido, setFormNumeroPedido] = useState("");
   const [savingClient, setSavingClient] = useState(false);
 
   useEffect(() => { loadClientes(); }, []);
@@ -82,13 +83,14 @@ export default function Clientes() {
 
   const handleNewClient = async () => {
     if (!formNome) { toast.error("Nome é obrigatório"); return; }
+    if (!formNumeroPedido) { toast.error("Número do pedido é obrigatório"); return; }
     setSavingClient(true);
     try {
-      const { error } = await supabase.from("clientes").insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf });
+      const { error } = await supabase.from("clientes").insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf, numero_pedido: formNumeroPedido });
       if (error) throw error;
       toast.success("Cliente adicionado!");
       setNewOpen(false);
-      setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf("");
+      setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf(""); setFormNumeroPedido("");
       loadClientes();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
@@ -223,9 +225,15 @@ export default function Clientes() {
                 <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemplo.com" className="rounded-xl" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>CPF/CNPJ</Label>
-              <Input value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="000.000.000-00" className="rounded-xl" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>CPF/CNPJ</Label>
+                <Input value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="000.000.000-00" className="rounded-xl" />
+              </div>
+              <div className="space-y-2">
+                <Label>Nº Pedido *</Label>
+                <Input value={formNumeroPedido} onChange={(e) => setFormNumeroPedido(e.target.value)} placeholder="Ex: 12345" className="rounded-xl" />
+              </div>
             </div>
             <Button onClick={handleNewClient} disabled={savingClient} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
               {savingClient ? "Salvando..." : "Adicionar Cliente"}
