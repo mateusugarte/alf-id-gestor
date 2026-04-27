@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, AlertCircle, Award, Search, Plus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Users, AlertCircle, Award, Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { formatDate, formatCurrency, formatTime, phoneMask } from "@/lib/format";
 import { toast } from "sonner";
 
