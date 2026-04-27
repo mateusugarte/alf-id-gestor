@@ -260,6 +260,12 @@ export default function Clientes() {
                           {a.status === "concluido" ? "Concluído" : "Concluir"}
                         </button>
                         <button
+                          onClick={(e) => { e.stopPropagation(); toggleBoleto(a.id, !a.boleto_pago); }}
+                          className={`text-xs px-2 py-1 rounded-lg transition-colors duration-200 ${a.boleto_pago ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}
+                        >
+                          {a.boleto_pago ? "Pago" : "Coletar pgto"}
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); setConfirmDelAtend(a.id); }}
                           className="text-xs px-2 py-1 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors duration-200"
                           title="Excluir atendimento"
