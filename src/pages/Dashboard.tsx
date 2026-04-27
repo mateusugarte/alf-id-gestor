@@ -47,7 +47,7 @@ export default function Dashboard() {
 
     const [todayRes, monthRes, totalRes, todayListRes] = await Promise.all([
       supabase.from("atendimentos").select("id", { count: "exact", head: true }).gte("data_hora", todayStart).lt("data_hora", todayEnd),
-      supabase.from("atendimentos").select("valor_repasse, certificados(valor)").eq("status", "concluido").gte("data_hora", monthStart).lt("data_hora", monthEnd),
+      supabase.from("atendimentos").select("valor_repasse, valor_certificado_personalizado, certificados(valor)").eq("status", "concluido").gte("data_hora", monthStart).lt("data_hora", monthEnd),
       supabase.from("atendimentos").select("id", { count: "exact", head: true }).eq("status", "concluido"),
       supabase.from("atendimentos").select("*, clientes(nome), certificados(nome), etiquetas(nome, cor)").gte("data_hora", todayStart).lt("data_hora", todayEnd).order("data_hora"),
     ]);
@@ -56,7 +56,10 @@ export default function Dashboard() {
     setMetrics({
       hoje: todayRes.count || 0,
       mesEmitidos: monthData.length,
-      mesFaturamento: monthData.reduce((s: number, a: any) => s + (Number(a.certificados?.valor) || 0), 0),
+      mesFaturamento: monthData.reduce((s: number, a: any) => {
+        const v = a.valor_certificado_personalizado != null ? Number(a.valor_certificado_personalizado) : Number(a.certificados?.valor) || 0;
+        return s + v;
+      }, 0),
       totalConcluidos: totalRes.count || 0,
     });
     setTodayAtendimentos((todayListRes.data as any) || []);
