@@ -131,6 +131,7 @@ export default function Agenda() {
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
     setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
     setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
+    setFormValorPersonalizado(false); setFormValorCertificado("");
     setClienteMode("novo");
     setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
     setDuplicados([]);
