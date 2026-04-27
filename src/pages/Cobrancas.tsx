@@ -97,7 +97,9 @@ export default function Cobrancas() {
     } finally { setSaving(false); }
   };
 
-  const totalPendente = cobrancas.reduce((s, c) => s + (Number(c.valor_repasse) || 0), 0);
+  const pendentesList = cobrancas.filter((c) => !c.boleto_pago && c.status !== "cancelado");
+  const totalPendente = pendentesList.reduce((s, c) => s + (Number(c.valor_repasse) || 0), 0);
+  const qtdPendentes = pendentesList.length;
 
   if (loading) return <Skeleton className="h-96 rounded-2xl" />;
 
