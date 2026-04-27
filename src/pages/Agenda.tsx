@@ -68,10 +68,12 @@ export default function Agenda() {
   const [clienteSelecionado, setClienteSelecionado] = useState<ClienteLite | null>(null);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Detail modal
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAtendimento, setDetailAtendimento] = useState<Atendimento | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const days = useMemo(() => getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
 
