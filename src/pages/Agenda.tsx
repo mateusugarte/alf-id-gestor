@@ -482,7 +482,7 @@ export default function Agenda() {
       {/* New appointment modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader><DialogTitle>Novo Atendimento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Atendimento" : "Novo Atendimento"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {/* Cliente: existente ou novo */}
             <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/50">
