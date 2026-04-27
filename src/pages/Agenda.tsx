@@ -120,6 +120,7 @@ export default function Agenda() {
   };
 
   const openNewModal = (dateStr?: string) => {
+    setEditingId(null);
     setSelectedDate(dateStr || "");
     setSelectedTime("");
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
@@ -128,6 +129,47 @@ export default function Agenda() {
     setClienteMode("novo");
     setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
     setModalOpen(true);
+  };
+
+  const openEditModal = async (a: Atendimento) => {
+    setEditingId(a.id);
+    // Buscar dados completos do cliente
+    const { data: ats } = await supabase.from("atendimentos")
+      .select("*, clientes(id, nome, telefone, email, cpf_cnpj, numero_pedido)")
+      .eq("id", a.id).single();
+    const cli = (ats as any)?.clientes;
+    const dt = new Date(a.data_hora);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setSelectedDate(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`);
+    setSelectedTime(`${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
+    setFormNome(cli?.nome || "");
+    setFormTelefone(cli?.telefone || "");
+    setFormEmail(cli?.email || "");
+    setFormCpfCnpj(cli?.cpf_cnpj || "");
+    setFormNumeroPedido(a.numero_pedido || cli?.numero_pedido || "");
+    setFormCertificado((ats as any)?.certificado_id || "");
+    setFormValor(String(a.valor_repasse || ""));
+    setFormTemComissao(!!a.tem_comissao);
+    setFormPercentual(String(a.percentual_comissao || ""));
+    setFormEtiqueta((ats as any)?.etiqueta_id || "");
+    setFormObs(a.observacoes || "");
+    setClienteMode("existente");
+    setClienteSelecionado(cli ? { id: cli.id, nome: cli.nome, telefone: cli.telefone, email: cli.email, cpf_cnpj: cli.cpf_cnpj, numero_pedido: cli.numero_pedido } : null);
+    setClienteBusca(cli?.nome || "");
+    setClienteResultados([]);
+    setDetailOpen(false);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!detailAtendimento) return;
+    const { error } = await supabase.from("atendimentos").delete().eq("id", detailAtendimento.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Atendimento excluído");
+    setConfirmDeleteOpen(false);
+    setDetailOpen(false);
+    setDetailAtendimento(null);
+    loadData();
   };
 
   const buscarClientes = async (termo: string) => {
