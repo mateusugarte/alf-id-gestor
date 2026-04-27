@@ -31,6 +31,7 @@ export type Database = {
           protocolo: string | null
           status: string | null
           tem_comissao: boolean | null
+          valor_certificado_personalizado: number | null
           valor_comissao: number | null
           valor_repasse: number | null
         }
@@ -50,6 +51,7 @@ export type Database = {
           protocolo?: string | null
           status?: string | null
           tem_comissao?: boolean | null
+          valor_certificado_personalizado?: number | null
           valor_comissao?: number | null
           valor_repasse?: number | null
         }
@@ -69,6 +71,7 @@ export type Database = {
           protocolo?: string | null
           status?: string | null
           tem_comissao?: boolean | null
+          valor_certificado_personalizado?: number | null
           valor_comissao?: number | null
           valor_repasse?: number | null
         }
