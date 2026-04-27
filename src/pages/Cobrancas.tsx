@@ -97,7 +97,9 @@ export default function Cobrancas() {
     } finally { setSaving(false); }
   };
 
-  const totalPendente = cobrancas.reduce((s, c) => s + (Number(c.valor_repasse) || 0), 0);
+  const pendentesList = cobrancas.filter((c) => !c.boleto_pago && c.status !== "cancelado");
+  const totalPendente = pendentesList.reduce((s, c) => s + (Number(c.valor_repasse) || 0), 0);
+  const qtdPendentes = pendentesList.length;
 
   if (loading) return <Skeleton className="h-96 rounded-2xl" />;
 
@@ -112,7 +114,7 @@ export default function Cobrancas() {
             <Receipt className="h-5 w-5 text-destructive relative z-10" />
             <div className="relative z-10">
               <p className="text-xs text-muted-foreground">Boletos pendentes</p>
-              <p className="text-xl font-bold text-foreground">{cobrancas.length}</p>
+              <p className="text-xl font-bold text-foreground">{qtdPendentes}</p>
             </div>
           </CardContent>
         </Card>
