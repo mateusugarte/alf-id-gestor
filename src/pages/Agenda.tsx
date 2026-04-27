@@ -57,6 +57,8 @@ export default function Agenda() {
   const [formEmail, setFormEmail] = useState("");
   const [formCpfCnpj, setFormCpfCnpj] = useState("");
   const [formCertificado, setFormCertificado] = useState("");
+  const [formValorPersonalizado, setFormValorPersonalizado] = useState(false);
+  const [formValorCertificado, setFormValorCertificado] = useState("");
   const [formValor, setFormValor] = useState("");
   const [formTemComissao, setFormTemComissao] = useState(false);
   const [formPercentual, setFormPercentual] = useState("");
@@ -129,6 +131,7 @@ export default function Agenda() {
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
     setFormCertificado(""); setFormValor(""); setFormTemComissao(false);
     setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
+    setFormValorPersonalizado(false); setFormValorCertificado("");
     setClienteMode("novo");
     setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
     setDuplicados([]);
@@ -153,6 +156,9 @@ export default function Agenda() {
     setFormNumeroPedido(a.numero_pedido || cli?.numero_pedido || "");
     setFormCertificado((ats as any)?.certificado_id || "");
     setFormValor(String(a.valor_repasse || ""));
+    const vPers = (ats as any)?.valor_certificado_personalizado;
+    setFormValorPersonalizado(vPers !== null && vPers !== undefined);
+    setFormValorCertificado(vPers !== null && vPers !== undefined ? String(vPers) : "");
     setFormTemComissao(!!a.tem_comissao);
     setFormPercentual(String(a.percentual_comissao || ""));
     setFormEtiqueta((ats as any)?.etiqueta_id || "");
@@ -265,6 +271,9 @@ export default function Agenda() {
 
       const dataHora = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
       const valorRepasse = parseFloat(formValor) || 0;
+      const valorCertPersonalizado = formValorPersonalizado
+        ? (parseFloat(formValorCertificado) || 0)
+        : null;
 
       if (editingId) {
         const { error } = await supabase.from("atendimentos").update({
@@ -274,6 +283,7 @@ export default function Agenda() {
           percentual_comissao: parseFloat(formPercentual) || 0,
           valor_comissao: comissaoValor, observacoes: formObs || null,
           numero_pedido: formNumeroPedido || null,
+          valor_certificado_personalizado: valorCertPersonalizado,
         }).eq("id", editingId);
         if (error) throw error;
         toast.success("Atendimento atualizado!");
@@ -285,6 +295,7 @@ export default function Agenda() {
           valor_repasse: valorRepasse, tem_comissao: formTemComissao,
           percentual_comissao: parseFloat(formPercentual) || 0,
           valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
+          valor_certificado_personalizado: valorCertPersonalizado,
         });
         if (error) throw error;
         toast.success(`Agendado! Protocolo: ${protocolo}`);
@@ -665,6 +676,43 @@ export default function Agenda() {
                   ))}
                 </SelectContent>
               </Select>
+              {formCertificado && (() => {
+                const cert = certificados.find(c => c.id === formCertificado);
+                const valorPadrao = cert?.valor || 0;
+                return (
+                  <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/40">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        Valor padrão: <span className="font-medium text-foreground">{formatCurrency(valorPadrao)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={formValorPersonalizado}
+                          onCheckedChange={(v) => {
+                            setFormValorPersonalizado(v);
+                            if (v && !formValorCertificado) setFormValorCertificado(String(valorPadrao));
+                          }}
+                        />
+                        <Label className="text-xs cursor-pointer">Valor personalizado</Label>
+                      </div>
+                    </div>
+                    {formValorPersonalizado && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor da venda (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formValorCertificado}
+                          onChange={(e) => setFormValorCertificado(e.target.value)}
+                          placeholder="0,00"
+                          className="rounded-xl"
+                        />
+                        <p className="text-xs text-muted-foreground">Esse valor será usado no faturamento no lugar do padrão.</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-2">
               <Label>Valor de repasse (R$)</Label>

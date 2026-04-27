@@ -1,0 +1,1 @@
+ALTER TABLE public.atendimentos ADD COLUMN IF NOT EXISTS valor_certificado_personalizado numeric;
