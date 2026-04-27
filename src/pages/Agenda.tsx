@@ -652,7 +652,7 @@ export default function Agenda() {
               <Textarea value={formObs} onChange={(e) => setFormObs(e.target.value)} placeholder="Observações opcionais..." className="rounded-xl" />
             </div>
             <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
-              {saving ? "Salvando..." : "Agendar Atendimento"}
+              {saving ? "Salvando..." : (editingId ? "Salvar alterações" : "Agendar Atendimento")}
             </Button>
           </div>
         </DialogContent>
