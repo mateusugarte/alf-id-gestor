@@ -228,6 +228,14 @@ export default function Clientes() {
                 <div><span className="text-muted-foreground">Nº Pedido:</span> {selected.numero_pedido || "—"}</div>
                 <div><span className="text-muted-foreground">Cadastro:</span> {formatDate(selected.created_at)}</div>
               </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="rounded-xl" onClick={() => openEditClient(selected)}>
+                  <Pencil className="h-3 w-3 mr-1" /> Editar cliente
+                </Button>
+                <Button size="sm" variant="destructive" className="rounded-xl" onClick={() => setConfirmDelClient(selected)}>
+                  <Trash2 className="h-3 w-3 mr-1" /> Excluir cliente
+                </Button>
+              </div>
               <h3 className="font-semibold text-foreground">Histórico de Atendimentos</h3>
               {historico.length === 0 ? (
                 <p className="text-muted-foreground text-sm">Nenhum atendimento encontrado</p>
