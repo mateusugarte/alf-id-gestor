@@ -466,6 +466,14 @@ export default function Agenda() {
                   {detailAtendimento.boleto_pago ? "Desfazer pagamento" : "Marcar pagamento coletado"}
                 </Button>
               </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button size="sm" variant="outline" className="rounded-xl flex-1" onClick={() => openEditModal(detailAtendimento)}>
+                  Editar atendimento
+                </Button>
+                <Button size="sm" variant="destructive" className="rounded-xl flex-1" onClick={() => setConfirmDeleteOpen(true)}>
+                  Excluir
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
