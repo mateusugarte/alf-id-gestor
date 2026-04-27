@@ -271,6 +271,9 @@ export default function Agenda() {
 
       const dataHora = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
       const valorRepasse = parseFloat(formValor) || 0;
+      const valorCertPersonalizado = formValorPersonalizado
+        ? (parseFloat(formValorCertificado) || 0)
+        : null;
 
       if (editingId) {
         const { error } = await supabase.from("atendimentos").update({
@@ -280,6 +283,7 @@ export default function Agenda() {
           percentual_comissao: parseFloat(formPercentual) || 0,
           valor_comissao: comissaoValor, observacoes: formObs || null,
           numero_pedido: formNumeroPedido || null,
+          valor_certificado_personalizado: valorCertPersonalizado,
         }).eq("id", editingId);
         if (error) throw error;
         toast.success("Atendimento atualizado!");
@@ -291,6 +295,7 @@ export default function Agenda() {
           valor_repasse: valorRepasse, tem_comissao: formTemComissao,
           percentual_comissao: parseFloat(formPercentual) || 0,
           valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
+          valor_certificado_personalizado: valorCertPersonalizado,
         });
         if (error) throw error;
         toast.success(`Agendado! Protocolo: ${protocolo}`);
