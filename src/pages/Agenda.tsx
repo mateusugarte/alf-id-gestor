@@ -600,6 +600,31 @@ export default function Agenda() {
               <div className="space-y-2">
                 <Label>Nome do cliente *</Label>
                 <Input value={formNome} onChange={(e) => setFormNome(e.target.value)} placeholder="Nome completo" className="rounded-xl" disabled={clienteMode === "existente"} />
+                {clienteMode === "novo" && !editingId && duplicados.length > 0 && (
+                  <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 space-y-2">
+                    <p className="text-xs font-medium text-destructive">
+                      ⚠ {duplicados.length} cliente(s) já cadastrado(s) com nome semelhante. Selecione abaixo para evitar duplicidade:
+                    </p>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {duplicados.map(d => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => { setClienteMode("existente"); selecionarCliente(d); setDuplicados([]); }}
+                          className="w-full text-left p-2 rounded-lg bg-background hover:bg-muted transition-colors border border-border/50"
+                        >
+                          <p className="text-sm font-medium text-foreground">{d.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {d.telefone || "sem telefone"} {d.cpf_cnpj ? `• ${d.cpf_cnpj}` : ""}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {checandoDuplicado && clienteMode === "novo" && (
+                  <p className="text-xs text-muted-foreground">Verificando duplicidade...</p>
+                )}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
