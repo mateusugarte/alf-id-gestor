@@ -156,6 +156,9 @@ export default function Agenda() {
     setFormNumeroPedido(a.numero_pedido || cli?.numero_pedido || "");
     setFormCertificado((ats as any)?.certificado_id || "");
     setFormValor(String(a.valor_repasse || ""));
+    const vPers = (ats as any)?.valor_certificado_personalizado;
+    setFormValorPersonalizado(vPers !== null && vPers !== undefined);
+    setFormValorCertificado(vPers !== null && vPers !== undefined ? String(vPers) : "");
     setFormTemComissao(!!a.tem_comissao);
     setFormPercentual(String(a.percentual_comissao || ""));
     setFormEtiqueta((ats as any)?.etiqueta_id || "");
