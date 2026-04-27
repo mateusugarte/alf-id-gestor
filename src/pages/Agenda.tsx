@@ -215,6 +215,8 @@ export default function Agenda() {
     }, 400);
     return () => { clearTimeout(t); setChecandoDuplicado(false); };
   }, [formNome, clienteMode, editingId]);
+
+  const openDetail = (a: Atendimento) => {
     setDetailAtendimento(a);
     setDetailOpen(true);
   };
