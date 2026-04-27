@@ -676,6 +676,43 @@ export default function Agenda() {
                   ))}
                 </SelectContent>
               </Select>
+              {formCertificado && (() => {
+                const cert = certificados.find(c => c.id === formCertificado);
+                const valorPadrao = cert?.valor || 0;
+                return (
+                  <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/40">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-muted-foreground">
+                        Valor padrão: <span className="font-medium text-foreground">{formatCurrency(valorPadrao)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={formValorPersonalizado}
+                          onCheckedChange={(v) => {
+                            setFormValorPersonalizado(v);
+                            if (v && !formValorCertificado) setFormValorCertificado(String(valorPadrao));
+                          }}
+                        />
+                        <Label className="text-xs cursor-pointer">Valor personalizado</Label>
+                      </div>
+                    </div>
+                    {formValorPersonalizado && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor da venda (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formValorCertificado}
+                          onChange={(e) => setFormValorCertificado(e.target.value)}
+                          placeholder="0,00"
+                          className="rounded-xl"
+                        />
+                        <p className="text-xs text-muted-foreground">Esse valor será usado no faturamento no lugar do padrão.</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-2">
               <Label>Valor de repasse (R$)</Label>
