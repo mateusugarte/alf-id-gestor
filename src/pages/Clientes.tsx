@@ -97,18 +97,59 @@ export default function Clientes() {
 
   const handleNewClient = async () => {
     if (!formNome) { toast.error("Nome é obrigatório"); return; }
-    if (!formNumeroPedido) { toast.error("Número do pedido é obrigatório"); return; }
+    if (!editingClientId && !formNumeroPedido) { toast.error("Número do pedido é obrigatório"); return; }
     setSavingClient(true);
     try {
-      const { error } = await supabase.from("clientes").insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf, numero_pedido: formNumeroPedido });
-      if (error) throw error;
-      toast.success("Cliente adicionado!");
+      const payload = { nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf, numero_pedido: formNumeroPedido || null };
+      if (editingClientId) {
+        const { error } = await supabase.from("clientes").update(payload).eq("id", editingClientId);
+        if (error) throw error;
+        toast.success("Cliente atualizado!");
+      } else {
+        const { error } = await supabase.from("clientes").insert(payload);
+        if (error) throw error;
+        toast.success("Cliente adicionado!");
+      }
       setNewOpen(false);
+      setEditingClientId(null);
       setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf(""); setFormNumeroPedido("");
       loadClientes();
+      if (selected && editingClientId === selected.id) {
+        setSelected({ ...selected, ...payload, numero_pedido: payload.numero_pedido } as any);
+      }
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
     } finally { setSavingClient(false); }
+  };
+
+  const openEditClient = (c: Cliente) => {
+    setEditingClientId(c.id);
+    setFormNome(c.nome);
+    setFormTelefone(c.telefone || "");
+    setFormEmail(c.email || "");
+    setFormCpf(c.cpf_cnpj || "");
+    setFormNumeroPedido(c.numero_pedido || "");
+    setNewOpen(true);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!confirmDelClient) return;
+    const { error } = await supabase.from("clientes").delete().eq("id", confirmDelClient.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cliente excluído");
+    setConfirmDelClient(null);
+    if (selected?.id === confirmDelClient.id) setSelected(null);
+    loadClientes();
+  };
+
+  const handleDeleteAtend = async () => {
+    if (!confirmDelAtend) return;
+    const { error } = await supabase.from("atendimentos").delete().eq("id", confirmDelAtend);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Atendimento excluído");
+    setConfirmDelAtend(null);
+    if (selected) openDetails(selected);
+    loadClientes();
   };
 
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;
