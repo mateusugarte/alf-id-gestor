@@ -114,7 +114,7 @@ export default function Cobrancas() {
             <Receipt className="h-5 w-5 text-destructive relative z-10" />
             <div className="relative z-10">
               <p className="text-xs text-muted-foreground">Boletos pendentes</p>
-              <p className="text-xl font-bold text-foreground">{cobrancas.length}</p>
+              <p className="text-xl font-bold text-foreground">{qtdPendentes}</p>
             </div>
           </CardContent>
         </Card>
