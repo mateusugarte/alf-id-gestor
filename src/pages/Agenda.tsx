@@ -233,20 +233,34 @@ export default function Agenda() {
         clienteId = newC.id;
       }
 
-      const protocolo = generateProtocolo();
       const dataHora = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
       const valorRepasse = parseFloat(formValor) || 0;
 
-      const { error } = await supabase.from("atendimentos").insert({
-        cliente_id: clienteId, certificado_id: formCertificado,
-        etiqueta_id: formEtiqueta || null, data_hora: dataHora,
-        valor_repasse: valorRepasse, tem_comissao: formTemComissao,
-        percentual_comissao: parseFloat(formPercentual) || 0,
-        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
-      });
-      if (error) throw error;
-      toast.success(`Agendado! Protocolo: ${protocolo}`);
+      if (editingId) {
+        const { error } = await supabase.from("atendimentos").update({
+          cliente_id: clienteId, certificado_id: formCertificado,
+          etiqueta_id: formEtiqueta || null, data_hora: dataHora,
+          valor_repasse: valorRepasse, tem_comissao: formTemComissao,
+          percentual_comissao: parseFloat(formPercentual) || 0,
+          valor_comissao: comissaoValor, observacoes: formObs || null,
+          numero_pedido: formNumeroPedido || null,
+        }).eq("id", editingId);
+        if (error) throw error;
+        toast.success("Atendimento atualizado!");
+      } else {
+        const protocolo = generateProtocolo();
+        const { error } = await supabase.from("atendimentos").insert({
+          cliente_id: clienteId, certificado_id: formCertificado,
+          etiqueta_id: formEtiqueta || null, data_hora: dataHora,
+          valor_repasse: valorRepasse, tem_comissao: formTemComissao,
+          percentual_comissao: parseFloat(formPercentual) || 0,
+          valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
+        });
+        if (error) throw error;
+        toast.success(`Agendado! Protocolo: ${protocolo}`);
+      }
       setModalOpen(false);
+      setEditingId(null);
       loadData();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
