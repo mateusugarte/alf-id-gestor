@@ -131,6 +131,7 @@ export default function Agenda() {
     setFormPercentual(""); setFormEtiqueta(""); setFormObs(""); setFormNumeroPedido("");
     setClienteMode("novo");
     setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
+    setDuplicados([]);
     setModalOpen(true);
   };
 
