@@ -43,6 +43,9 @@ export default function Clientes() {
   const [formCpf, setFormCpf] = useState("");
   const [formNumeroPedido, setFormNumeroPedido] = useState("");
   const [savingClient, setSavingClient] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [confirmDelClient, setConfirmDelClient] = useState<Cliente | null>(null);
+  const [confirmDelAtend, setConfirmDelAtend] = useState<string | null>(null);
 
   useEffect(() => { loadClientes(); }, []);
 
