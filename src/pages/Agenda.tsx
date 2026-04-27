@@ -199,7 +199,22 @@ export default function Agenda() {
     setClienteBusca(c.nome);
   };
 
-  const openDetail = (a: Atendimento) => {
+  // Detecta clientes duplicados em tempo real ao digitar nome no modo "novo"
+  useEffect(() => {
+    if (clienteMode !== "novo" || editingId) { setDuplicados([]); return; }
+    const termo = formNome.trim();
+    if (termo.length < 3) { setDuplicados([]); return; }
+    setChecandoDuplicado(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("clientes")
+        .select("id, nome, telefone, email, cpf_cnpj, numero_pedido")
+        .ilike("nome", `%${termo}%`)
+        .order("nome").limit(5);
+      setDuplicados((data as any) || []);
+      setChecandoDuplicado(false);
+    }, 400);
+    return () => { clearTimeout(t); setChecandoDuplicado(false); };
+  }, [formNome, clienteMode, editingId]);
     setDetailAtendimento(a);
     setDetailOpen(true);
   };
