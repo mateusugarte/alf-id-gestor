@@ -231,6 +231,15 @@ export default function Agenda() {
     if (!formNome || !selectedDate || !selectedTime || !formCertificado) {
       toast.error("Preencha os campos obrigatórios"); return;
     }
+    // Bloqueia criação de cliente novo se houver nome idêntico já cadastrado
+    if (clienteMode === "novo" && !editingId) {
+      const nomeNorm = formNome.trim().toLowerCase();
+      const exato = duplicados.find(d => d.nome.trim().toLowerCase() === nomeNorm);
+      if (exato) {
+        toast.error("Já existe um cliente com esse nome. Selecione-o na lista de duplicados ou troque para 'Sim, buscar cliente'.");
+        return;
+      }
+    }
     setSaving(true);
     try {
       let clienteId: string | null = null;
