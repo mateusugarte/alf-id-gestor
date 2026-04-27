@@ -70,6 +70,8 @@ export default function Agenda() {
   const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [duplicados, setDuplicados] = useState<ClienteLite[]>([]);
+  const [checandoDuplicado, setChecandoDuplicado] = useState(false);
 
   // Detail modal
   const [detailOpen, setDetailOpen] = useState(false);
