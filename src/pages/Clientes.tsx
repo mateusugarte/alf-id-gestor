@@ -158,7 +158,7 @@ export default function Clientes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-        <Button onClick={() => setNewOpen(true)} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
+        <Button onClick={() => { setEditingClientId(null); setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf(""); setFormNumeroPedido(""); setNewOpen(true); }} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
           <Plus className="h-4 w-4 mr-2" /> Novo Cliente
         </Button>
       </div>
