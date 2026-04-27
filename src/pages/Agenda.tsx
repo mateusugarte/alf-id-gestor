@@ -57,6 +57,8 @@ export default function Agenda() {
   const [formEmail, setFormEmail] = useState("");
   const [formCpfCnpj, setFormCpfCnpj] = useState("");
   const [formCertificado, setFormCertificado] = useState("");
+  const [formValorPersonalizado, setFormValorPersonalizado] = useState(false);
+  const [formValorCertificado, setFormValorCertificado] = useState("");
   const [formValor, setFormValor] = useState("");
   const [formTemComissao, setFormTemComissao] = useState(false);
   const [formPercentual, setFormPercentual] = useState("");
