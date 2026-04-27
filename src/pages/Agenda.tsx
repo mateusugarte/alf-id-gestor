@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,10 +69,12 @@ export default function Agenda() {
   const [clienteSelecionado, setClienteSelecionado] = useState<ClienteLite | null>(null);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Detail modal
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailAtendimento, setDetailAtendimento] = useState<Atendimento | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const days = useMemo(() => getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth()), [currentMonth]);
 
@@ -118,6 +121,7 @@ export default function Agenda() {
   };
 
   const openNewModal = (dateStr?: string) => {
+    setEditingId(null);
     setSelectedDate(dateStr || "");
     setSelectedTime("");
     setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpfCnpj("");
@@ -126,6 +130,47 @@ export default function Agenda() {
     setClienteMode("novo");
     setClienteBusca(""); setClienteResultados([]); setClienteSelecionado(null);
     setModalOpen(true);
+  };
+
+  const openEditModal = async (a: Atendimento) => {
+    setEditingId(a.id);
+    // Buscar dados completos do cliente
+    const { data: ats } = await supabase.from("atendimentos")
+      .select("*, clientes(id, nome, telefone, email, cpf_cnpj, numero_pedido)")
+      .eq("id", a.id).single();
+    const cli = (ats as any)?.clientes;
+    const dt = new Date(a.data_hora);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setSelectedDate(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`);
+    setSelectedTime(`${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
+    setFormNome(cli?.nome || "");
+    setFormTelefone(cli?.telefone || "");
+    setFormEmail(cli?.email || "");
+    setFormCpfCnpj(cli?.cpf_cnpj || "");
+    setFormNumeroPedido(a.numero_pedido || cli?.numero_pedido || "");
+    setFormCertificado((ats as any)?.certificado_id || "");
+    setFormValor(String(a.valor_repasse || ""));
+    setFormTemComissao(!!a.tem_comissao);
+    setFormPercentual(String(a.percentual_comissao || ""));
+    setFormEtiqueta((ats as any)?.etiqueta_id || "");
+    setFormObs(a.observacoes || "");
+    setClienteMode("existente");
+    setClienteSelecionado(cli ? { id: cli.id, nome: cli.nome, telefone: cli.telefone, email: cli.email, cpf_cnpj: cli.cpf_cnpj, numero_pedido: cli.numero_pedido } : null);
+    setClienteBusca(cli?.nome || "");
+    setClienteResultados([]);
+    setDetailOpen(false);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!detailAtendimento) return;
+    const { error } = await supabase.from("atendimentos").delete().eq("id", detailAtendimento.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Atendimento excluído");
+    setConfirmDeleteOpen(false);
+    setDetailOpen(false);
+    setDetailAtendimento(null);
+    loadData();
   };
 
   const buscarClientes = async (termo: string) => {
@@ -189,20 +234,34 @@ export default function Agenda() {
         clienteId = newC.id;
       }
 
-      const protocolo = generateProtocolo();
       const dataHora = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
       const valorRepasse = parseFloat(formValor) || 0;
 
-      const { error } = await supabase.from("atendimentos").insert({
-        cliente_id: clienteId, certificado_id: formCertificado,
-        etiqueta_id: formEtiqueta || null, data_hora: dataHora,
-        valor_repasse: valorRepasse, tem_comissao: formTemComissao,
-        percentual_comissao: parseFloat(formPercentual) || 0,
-        valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
-      });
-      if (error) throw error;
-      toast.success(`Agendado! Protocolo: ${protocolo}`);
+      if (editingId) {
+        const { error } = await supabase.from("atendimentos").update({
+          cliente_id: clienteId, certificado_id: formCertificado,
+          etiqueta_id: formEtiqueta || null, data_hora: dataHora,
+          valor_repasse: valorRepasse, tem_comissao: formTemComissao,
+          percentual_comissao: parseFloat(formPercentual) || 0,
+          valor_comissao: comissaoValor, observacoes: formObs || null,
+          numero_pedido: formNumeroPedido || null,
+        }).eq("id", editingId);
+        if (error) throw error;
+        toast.success("Atendimento atualizado!");
+      } else {
+        const protocolo = generateProtocolo();
+        const { error } = await supabase.from("atendimentos").insert({
+          cliente_id: clienteId, certificado_id: formCertificado,
+          etiqueta_id: formEtiqueta || null, data_hora: dataHora,
+          valor_repasse: valorRepasse, tem_comissao: formTemComissao,
+          percentual_comissao: parseFloat(formPercentual) || 0,
+          valor_comissao: comissaoValor, protocolo, observacoes: formObs || null, numero_pedido: formNumeroPedido || null,
+        });
+        if (error) throw error;
+        toast.success(`Agendado! Protocolo: ${protocolo}`);
+      }
       setModalOpen(false);
+      setEditingId(null);
       loadData();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
@@ -408,6 +467,14 @@ export default function Agenda() {
                   {detailAtendimento.boleto_pago ? "Desfazer pagamento" : "Marcar pagamento coletado"}
                 </Button>
               </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button size="sm" variant="outline" className="rounded-xl flex-1" onClick={() => openEditModal(detailAtendimento)}>
+                  Editar atendimento
+                </Button>
+                <Button size="sm" variant="destructive" className="rounded-xl flex-1" onClick={() => setConfirmDeleteOpen(true)}>
+                  Excluir
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -416,7 +483,7 @@ export default function Agenda() {
       {/* New appointment modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader><DialogTitle>Novo Atendimento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Atendimento" : "Novo Atendimento"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {/* Cliente: existente ou novo */}
             <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/50">
@@ -586,11 +653,29 @@ export default function Agenda() {
               <Textarea value={formObs} onChange={(e) => setFormObs(e.target.value)} placeholder="Observações opcionais..." className="rounded-xl" />
             </div>
             <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
-              {saving ? "Salvando..." : "Agendar Atendimento"}
+              {saving ? "Salvando..." : (editingId ? "Salvar alterações" : "Agendar Atendimento")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm delete */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir atendimento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O atendimento será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="rounded-xl bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

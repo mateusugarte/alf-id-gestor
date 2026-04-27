@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Users, AlertCircle, Award, Search, Plus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Users, AlertCircle, Award, Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { formatDate, formatCurrency, formatTime, phoneMask } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -42,6 +43,9 @@ export default function Clientes() {
   const [formCpf, setFormCpf] = useState("");
   const [formNumeroPedido, setFormNumeroPedido] = useState("");
   const [savingClient, setSavingClient] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [confirmDelClient, setConfirmDelClient] = useState<Cliente | null>(null);
+  const [confirmDelAtend, setConfirmDelAtend] = useState<string | null>(null);
 
   useEffect(() => { loadClientes(); }, []);
 
@@ -93,18 +97,59 @@ export default function Clientes() {
 
   const handleNewClient = async () => {
     if (!formNome) { toast.error("Nome é obrigatório"); return; }
-    if (!formNumeroPedido) { toast.error("Número do pedido é obrigatório"); return; }
+    if (!editingClientId && !formNumeroPedido) { toast.error("Número do pedido é obrigatório"); return; }
     setSavingClient(true);
     try {
-      const { error } = await supabase.from("clientes").insert({ nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf, numero_pedido: formNumeroPedido });
-      if (error) throw error;
-      toast.success("Cliente adicionado!");
+      const payload = { nome: formNome, telefone: formTelefone, email: formEmail, cpf_cnpj: formCpf, numero_pedido: formNumeroPedido || null };
+      if (editingClientId) {
+        const { error } = await supabase.from("clientes").update(payload).eq("id", editingClientId);
+        if (error) throw error;
+        toast.success("Cliente atualizado!");
+      } else {
+        const { error } = await supabase.from("clientes").insert(payload);
+        if (error) throw error;
+        toast.success("Cliente adicionado!");
+      }
       setNewOpen(false);
+      setEditingClientId(null);
       setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf(""); setFormNumeroPedido("");
       loadClientes();
+      if (selected && editingClientId === selected.id) {
+        setSelected({ ...selected, ...payload, numero_pedido: payload.numero_pedido } as any);
+      }
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
     } finally { setSavingClient(false); }
+  };
+
+  const openEditClient = (c: Cliente) => {
+    setEditingClientId(c.id);
+    setFormNome(c.nome);
+    setFormTelefone(c.telefone || "");
+    setFormEmail(c.email || "");
+    setFormCpf(c.cpf_cnpj || "");
+    setFormNumeroPedido(c.numero_pedido || "");
+    setNewOpen(true);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!confirmDelClient) return;
+    const { error } = await supabase.from("clientes").delete().eq("id", confirmDelClient.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cliente excluído");
+    setConfirmDelClient(null);
+    if (selected?.id === confirmDelClient.id) setSelected(null);
+    loadClientes();
+  };
+
+  const handleDeleteAtend = async () => {
+    if (!confirmDelAtend) return;
+    const { error } = await supabase.from("atendimentos").delete().eq("id", confirmDelAtend);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Atendimento excluído");
+    setConfirmDelAtend(null);
+    if (selected) openDetails(selected);
+    loadClientes();
   };
 
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;
@@ -113,7 +158,7 @@ export default function Clientes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-        <Button onClick={() => setNewOpen(true)} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
+        <Button onClick={() => { setEditingClientId(null); setFormNome(""); setFormTelefone(""); setFormEmail(""); setFormCpf(""); setFormNumeroPedido(""); setNewOpen(true); }} className="rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
           <Plus className="h-4 w-4 mr-2" /> Novo Cliente
         </Button>
       </div>
@@ -183,6 +228,14 @@ export default function Clientes() {
                 <div><span className="text-muted-foreground">Nº Pedido:</span> {selected.numero_pedido || "—"}</div>
                 <div><span className="text-muted-foreground">Cadastro:</span> {formatDate(selected.created_at)}</div>
               </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="rounded-xl" onClick={() => openEditClient(selected)}>
+                  <Pencil className="h-3 w-3 mr-1" /> Editar cliente
+                </Button>
+                <Button size="sm" variant="destructive" className="rounded-xl" onClick={() => setConfirmDelClient(selected)}>
+                  <Trash2 className="h-3 w-3 mr-1" /> Excluir cliente
+                </Button>
+              </div>
               <h3 className="font-semibold text-foreground">Histórico de Atendimentos</h3>
               {historico.length === 0 ? (
                 <p className="text-muted-foreground text-sm">Nenhum atendimento encontrado</p>
@@ -212,6 +265,13 @@ export default function Clientes() {
                         >
                           {a.boleto_pago ? "Pago" : "Coletar pgto"}
                         </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDelAtend(a.id); }}
+                          className="text-xs px-2 py-1 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors duration-200"
+                          title="Excluir atendimento"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -223,9 +283,9 @@ export default function Clientes() {
       </Dialog>
 
       {/* New client modal */}
-      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+      <Dialog open={newOpen} onOpenChange={(o) => { setNewOpen(o); if (!o) setEditingClientId(null); }}>
         <DialogContent className="rounded-2xl">
-          <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingClientId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome *</Label>
@@ -247,16 +307,44 @@ export default function Clientes() {
                 <Input value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="000.000.000-00" className="rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Nº Pedido *</Label>
+                <Label>Nº Pedido {editingClientId ? "" : "*"}</Label>
                 <Input value={formNumeroPedido} onChange={(e) => setFormNumeroPedido(e.target.value)} placeholder="Ex: 12345" className="rounded-xl" />
               </div>
             </div>
             <Button onClick={handleNewClient} disabled={savingClient} className="w-full rounded-xl bg-gradient-to-r from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70 transition-all duration-300">
-              {savingClient ? "Salvando..." : "Adicionar Cliente"}
+              {savingClient ? "Salvando..." : (editingClientId ? "Salvar alterações" : "Adicionar Cliente")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDelClient} onOpenChange={(o) => !o && setConfirmDelClient(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Atendimentos vinculados podem ficar sem referência.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteClient} className="rounded-xl bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmDelAtend} onOpenChange={(o) => !o && setConfirmDelAtend(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir atendimento?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAtend} className="rounded-xl bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
