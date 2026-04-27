@@ -14,10 +14,15 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 
 interface Cobranca {
-  id: string; data_hora: string; valor_repasse: number; protocolo: string; boleto_pago: boolean; status: string;
+  id: string; data_hora: string; valor_repasse: number; valor_certificado_personalizado: number | null; protocolo: string; boleto_pago: boolean; status: string;
   clientes: { nome: string; telefone: string; email: string } | null;
-  certificados: { nome: string } | null;
+  certificados: { nome: string; valor: number } | null;
 }
+
+const valorBoleto = (c: { valor_certificado_personalizado?: number | null; certificados?: { valor?: number } | null }) =>
+  c.valor_certificado_personalizado != null
+    ? Number(c.valor_certificado_personalizado)
+    : Number(c.certificados?.valor) || 0;
 
 export default function Cobrancas() {
   const [cobrancas, setCobrancas] = useState<Cobranca[]>([]);
@@ -36,7 +41,7 @@ export default function Cobrancas() {
 
   const loadCobrancas = async () => {
     let query = supabase.from("atendimentos")
-      .select("id, data_hora, valor_repasse, protocolo, boleto_pago, status, clientes(nome, telefone, email), certificados(nome)")
+      .select("id, data_hora, valor_repasse, valor_certificado_personalizado, protocolo, boleto_pago, status, clientes(nome, telefone, email), certificados(nome, valor)")
       .order("data_hora", { ascending: true });
     if (!showAll) {
       query = query.eq("boleto_pago", false).neq("status", "cancelado");
@@ -98,7 +103,7 @@ export default function Cobrancas() {
   };
 
   const pendentesList = cobrancas.filter((c) => !c.boleto_pago && c.status !== "cancelado");
-  const totalPendente = pendentesList.reduce((s, c) => s + (Number(c.valor_repasse) || 0), 0);
+  const totalPendente = pendentesList.reduce((s, c) => s + valorBoleto(c), 0);
   const qtdPendentes = pendentesList.length;
 
   if (loading) return <Skeleton className="h-96 rounded-2xl" />;
@@ -172,7 +177,7 @@ export default function Cobrancas() {
                       <td className="p-3 font-mono text-xs text-muted-foreground">{c.protocolo}</td>
                       <td className="p-3 text-muted-foreground">{c.certificados?.nome || "—"}</td>
                       <td className="p-3 text-muted-foreground">{formatDate(c.data_hora)}</td>
-                      <td className="p-3 text-right font-medium text-foreground">{formatCurrency(Number(c.valor_repasse))}</td>
+                      <td className="p-3 text-right font-medium text-foreground">{formatCurrency(valorBoleto(c))}</td>
                       <td className="p-3 text-right">
                         <Badge variant={dias > 30 ? "destructive" : "secondary"} className="text-[10px]">{dias}d</Badge>
                       </td>
