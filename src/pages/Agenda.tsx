@@ -443,8 +443,8 @@ export default function Agenda() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={`text-[10px] border-0 ${a.status === "concluido" ? "bg-success text-success-foreground" : a.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                      {a.status}
+                    <Badge className={`text-[10px] border-0 ${statusBadgeClass(a.status)}`}>
+                      {statusLabel(a.status)}
                     </Badge>
                     <span className="text-sm font-medium text-foreground">{formatCurrency(Number(a.valor_repasse))}</span>
                   </div>
