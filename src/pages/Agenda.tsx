@@ -40,6 +40,34 @@ function getDaysInMonth(year: number, month: number) {
   return days;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  agendado: "Agendado",
+  concluido: "Concluído",
+  reagendado: "Reagendado",
+  nao_compareceu: "Não compareceu",
+  nao_realizado: "Não realizado",
+  cancelado: "Cancelado",
+};
+
+function statusBadgeClass(status: string | null | undefined) {
+  switch (status) {
+    case "concluido": return "bg-success text-success-foreground";
+    case "cancelado":
+    case "nao_compareceu":
+    case "nao_realizado":
+      return "bg-destructive text-destructive-foreground";
+    case "reagendado":
+      return "bg-warning text-warning-foreground";
+    default:
+      return "bg-secondary text-secondary-foreground";
+  }
+}
+
+function statusLabel(status: string | null | undefined) {
+  if (!status) return "—";
+  return STATUS_LABELS[status] || status;
+}
+
 export default function Agenda() {
   const [currentMonth, setCurrentMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
