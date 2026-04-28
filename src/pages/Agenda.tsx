@@ -40,6 +40,34 @@ function getDaysInMonth(year: number, month: number) {
   return days;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  agendado: "Agendado",
+  concluido: "Concluído",
+  reagendado: "Reagendado",
+  nao_compareceu: "Não compareceu",
+  nao_realizado: "Não realizado",
+  cancelado: "Cancelado",
+};
+
+function statusBadgeClass(status: string | null | undefined) {
+  switch (status) {
+    case "concluido": return "bg-success text-success-foreground";
+    case "cancelado":
+    case "nao_compareceu":
+    case "nao_realizado":
+      return "bg-destructive text-destructive-foreground";
+    case "reagendado":
+      return "bg-warning text-warning-foreground";
+    default:
+      return "bg-secondary text-secondary-foreground";
+  }
+}
+
+function statusLabel(status: string | null | undefined) {
+  if (!status) return "—";
+  return STATUS_LABELS[status] || status;
+}
+
 export default function Agenda() {
   const [currentMonth, setCurrentMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -415,8 +443,8 @@ export default function Agenda() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={`text-[10px] border-0 ${a.status === "concluido" ? "bg-success text-success-foreground" : a.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                      {a.status}
+                    <Badge className={`text-[10px] border-0 ${statusBadgeClass(a.status)}`}>
+                      {statusLabel(a.status)}
                     </Badge>
                     <span className="text-sm font-medium text-foreground">{formatCurrency(Number(a.valor_repasse))}</span>
                   </div>
@@ -438,8 +466,8 @@ export default function Agenda() {
           {detailAtendimento && (
             <div className="space-y-4 text-sm">
               <div className="flex items-center gap-2">
-                <Badge className={`border-0 ${detailAtendimento.status === "concluido" ? "bg-success text-success-foreground" : detailAtendimento.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                  {detailAtendimento.status}
+                <Badge className={`border-0 ${statusBadgeClass(detailAtendimento.status)}`}>
+                  {statusLabel(detailAtendimento.status)}
                 </Badge>
                 <span className="font-mono text-xs text-muted-foreground">{detailAtendimento.protocolo}</span>
                 {detailAtendimento.etiquetas && (
@@ -475,22 +503,38 @@ export default function Agenda() {
                   <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Fim Certificado</p><p className="font-medium text-foreground">{formatDate(detailAtendimento.data_fim_certificado || "")}</p></div>
                 </div>
               )}
-              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
-                <Button
-                  size="sm"
-                  variant={detailAtendimento.status === "concluido" ? "outline" : "default"}
-                  className="rounded-xl flex-1"
-                  onClick={async () => {
-                    const novoStatus = detailAtendimento.status === "concluido" ? "agendado" : "concluido";
+              <div className="pt-2 border-t space-y-2">
+                <Label className="text-xs text-muted-foreground">Situação do atendimento</Label>
+                <Select
+                  value={detailAtendimento.status || "agendado"}
+                  onValueChange={async (novoStatus) => {
                     const { error } = await supabase.from("atendimentos").update({ status: novoStatus }).eq("id", detailAtendimento.id);
                     if (error) { toast.error(error.message); return; }
-                    toast.success(novoStatus === "concluido" ? "Atendimento concluído!" : "Marcado como agendado");
+                    const labels: Record<string, string> = {
+                      agendado: "Marcado como agendado",
+                      concluido: "Atendimento concluído!",
+                      reagendado: "Marcado como reagendado",
+                      nao_compareceu: "Marcado como não compareceu",
+                      nao_realizado: "Marcado como não realizado",
+                      cancelado: "Atendimento cancelado",
+                    };
+                    toast.success(labels[novoStatus] || "Status atualizado");
                     setDetailAtendimento({ ...detailAtendimento, status: novoStatus });
                     loadData();
                   }}
                 >
-                  {detailAtendimento.status === "concluido" ? "Reabrir atendimento" : "Marcar como concluído"}
-                </Button>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="reagendado">Reagendado</SelectItem>
+                    <SelectItem value="nao_compareceu">Não compareceu</SelectItem>
+                    <SelectItem value="nao_realizado">Não realizado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   size="sm"
                   variant={detailAtendimento.boleto_pago ? "outline" : "default"}
