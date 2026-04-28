@@ -466,8 +466,8 @@ export default function Agenda() {
           {detailAtendimento && (
             <div className="space-y-4 text-sm">
               <div className="flex items-center gap-2">
-                <Badge className={`border-0 ${detailAtendimento.status === "concluido" ? "bg-success text-success-foreground" : detailAtendimento.status === "cancelado" ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                  {detailAtendimento.status}
+                <Badge className={`border-0 ${statusBadgeClass(detailAtendimento.status)}`}>
+                  {statusLabel(detailAtendimento.status)}
                 </Badge>
                 <span className="font-mono text-xs text-muted-foreground">{detailAtendimento.protocolo}</span>
                 {detailAtendimento.etiquetas && (
