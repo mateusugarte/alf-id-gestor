@@ -475,22 +475,38 @@ export default function Agenda() {
                   <div className="p-2 rounded-lg bg-muted/30"><p className="text-muted-foreground text-xs">Fim Certificado</p><p className="font-medium text-foreground">{formatDate(detailAtendimento.data_fim_certificado || "")}</p></div>
                 </div>
               )}
-              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
-                <Button
-                  size="sm"
-                  variant={detailAtendimento.status === "concluido" ? "outline" : "default"}
-                  className="rounded-xl flex-1"
-                  onClick={async () => {
-                    const novoStatus = detailAtendimento.status === "concluido" ? "agendado" : "concluido";
+              <div className="pt-2 border-t space-y-2">
+                <Label className="text-xs text-muted-foreground">Situação do atendimento</Label>
+                <Select
+                  value={detailAtendimento.status || "agendado"}
+                  onValueChange={async (novoStatus) => {
                     const { error } = await supabase.from("atendimentos").update({ status: novoStatus }).eq("id", detailAtendimento.id);
                     if (error) { toast.error(error.message); return; }
-                    toast.success(novoStatus === "concluido" ? "Atendimento concluído!" : "Marcado como agendado");
+                    const labels: Record<string, string> = {
+                      agendado: "Marcado como agendado",
+                      concluido: "Atendimento concluído!",
+                      reagendado: "Marcado como reagendado",
+                      nao_compareceu: "Marcado como não compareceu",
+                      nao_realizado: "Marcado como não realizado",
+                      cancelado: "Atendimento cancelado",
+                    };
+                    toast.success(labels[novoStatus] || "Status atualizado");
                     setDetailAtendimento({ ...detailAtendimento, status: novoStatus });
                     loadData();
                   }}
                 >
-                  {detailAtendimento.status === "concluido" ? "Reabrir atendimento" : "Marcar como concluído"}
-                </Button>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="reagendado">Reagendado</SelectItem>
+                    <SelectItem value="nao_compareceu">Não compareceu</SelectItem>
+                    <SelectItem value="nao_realizado">Não realizado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   size="sm"
                   variant={detailAtendimento.boleto_pago ? "outline" : "default"}
